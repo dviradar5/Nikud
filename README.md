@@ -8,7 +8,7 @@ Download the ZIP for your operating system from [GitHub Releases](https://github
 
 ### Windows
 
-1. Exit any older Nikud from the tray. Extract the entire Windows ZIP, then double-click **Nikud.exe**. Keep the `NikudEngine` folder beside it. The model and its runtime are bundled for Windows x64.
+1. Extract the entire Windows ZIP, then double-click **Nikud.exe**. Keep the `NikudEngine` folder beside it. The model and its runtime are bundled for Windows x64.
 2. **Nikud Settings** opens and shows your active shortcut. The default is **Ctrl+Shift+J**. Look for the **נִ** icon near the clock or under the **^** button to reopen Settings.
 3. In another app, highlight a Hebrew word or sentence and press the shortcut shown in Settings. Nikud replaces the selection in place.
 4. If multiple readings are available, choose the intended reading in the popup and select **Apply**. **Cancel** leaves the selection as typed.
