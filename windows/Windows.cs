@@ -1,0 +1,286 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Microsoft.Win32;
+
+namespace Nikud
+{
+    internal sealed class Settings : Form
+    {
+        private readonly Hotkey hotkey;
+        private readonly TextBox shortcut = new TextBox { ReadOnly = true, Dock = DockStyle.Fill };
+        private readonly Label status = new Label { AutoSize = true, ForeColor = SystemColors.GrayText, MaximumSize = new Size(380, 0) };
+        private readonly Label activity = new Label { AutoSize = true, ForeColor = SystemColors.GrayText, MaximumSize = new Size(380, 0) };
+        private readonly string executable = "\"" + Application.ExecutablePath + "\" --tray";
+        internal event Action OpenEditor;
+        private const string Preferences = @"Software\Nikud";
+        private const string Startup = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+        internal Settings(Hotkey hotkey)
+        {
+            this.hotkey = hotkey;
+            Text = "Nikud Settings";
+            Font = SystemFonts.MessageBoxFont;
+            AutoScaleMode = AutoScaleMode.Dpi;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterScreen;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ClientSize = new Size(430, 285);
+
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(22, 17, 22, 14), ColumnCount = 3 };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 114));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
+            layout.Controls.Add(new Label { Text = "Nikud", AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(3, 3, 3, 9) }, 0, 0);
+            layout.Controls.Add(new Label { Text = "Vocalize selection:", AutoSize = true, Anchor = AnchorStyles.Right }, 0, 1);
+            shortcut.AccessibleName = "Vocalize selection shortcut";
+            layout.Controls.Add(shortcut, 1, 1);
+            var clear = new Button { Text = "Clear", Dock = DockStyle.Fill, AutoSize = true };
+            clear.Click += (sender, args) => SaveShortcut(0, Keys.None);
+            layout.Controls.Add(clear, 2, 1);
+            AddFullRow(layout, new Label
+            {
+                Text = "Click the shortcut box, then press a key combination with Ctrl, Alt, or Win. Select Hebrew text in any supported app and press the shortcut to add nikud in place.",
+                AutoSize = true, MaximumSize = new Size(380, 0), ForeColor = SystemColors.GrayText,
+                Margin = new Padding(3, 5, 3, 8),
+            }, 2);
+            AddFullRow(layout, status, 3);
+            var startup = new CheckBox { Text = "Start with Windows", AutoSize = true, Margin = new Padding(3, 9, 3, 8) };
+            startup.Checked = string.Equals(Registry.GetValue(@"HKEY_CURRENT_USER\" + Startup, "Nikud", "") as string, executable, StringComparison.OrdinalIgnoreCase);
+            startup.CheckedChanged += (sender, args) =>
+            {
+                try
+                {
+                    using (var registry = Registry.CurrentUser.CreateSubKey(Startup))
+                    {
+                        if (startup.Checked) registry.SetValue("Nikud", executable);
+                        else registry.DeleteValue("Nikud", false);
+                    }
+                }
+                catch (Exception) { status.Text = "Windows could not update the startup setting."; }
+            };
+            AddFullRow(layout, startup, 4);
+            AddFullRow(layout, new Label
+            {
+                Text = Engine.Available ? "Vocalizer: Nakdimon · offline" : "Extract the entire ZIP to install the offline vocalizer.",
+                AutoSize = true, MaximumSize = new Size(380, 0), ForeColor = SystemColors.GrayText,
+                Margin = new Padding(3, 5, 3, 4),
+            }, 5);
+            AddFullRow(layout, activity, 6);
+            var test = new Button { Text = "Open text editor…", AutoSize = true, Margin = new Padding(3, 8, 3, 3) };
+            test.Click += (sender, args) => { if (OpenEditor != null) OpenEditor(); };
+            AddFullRow(layout, test, 7);
+            Controls.Add(layout);
+
+            shortcut.KeyDown += CaptureShortcut;
+            FormClosing += (sender, args) =>
+            {
+                if (args.CloseReason == CloseReason.UserClosing) { args.Cancel = true; Hide(); }
+            };
+            var stored = Registry.GetValue(@"HKEY_CURRENT_USER\" + Preferences, "Shortcut", "6:74") as string;
+            var parts = (stored ?? "").Split(':');
+            uint modifiers;
+            int code;
+            bool loaded = parts.Length == 2 && uint.TryParse(parts[0], out modifiers)
+                && int.TryParse(parts[1], out code) && hotkey.Set(modifiers, (Keys)code);
+            RefreshShortcut();
+            if (!loaded) status.Text = "The saved shortcut is unavailable. Choose another combination.";
+        }
+
+        internal string ShortcutStatus
+        {
+            get { return hotkey.Key == Keys.None ? "Open Nikud Settings and choose a shortcut." : "Select Hebrew text and press " + shortcut.Text + "."; }
+        }
+
+        internal void ShowActivity(string message)
+        {
+            activity.Text = message == ShortcutStatus ? "" : message;
+        }
+
+        private static void AddFullRow(TableLayoutPanel layout, Control control, int row)
+        {
+            layout.Controls.Add(control, 0, row);
+            layout.SetColumnSpan(control, 3);
+        }
+
+        private void CaptureShortcut(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey
+                || e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin) return;
+            e.SuppressKeyPress = true;
+            uint modifiers = 0;
+            if (e.Control) modifiers |= 2;
+            if (e.Alt) modifiers |= 1;
+            if (e.Shift) modifiers |= 4;
+            if (Hotkey.Down(Keys.LWin) || Hotkey.Down(Keys.RWin)) modifiers |= 8;
+            if ((modifiers & 11) == 0)
+            {
+                status.Text = "Include Ctrl, Alt, or Win in the shortcut.";
+                return;
+            }
+            if (e.KeyCode == Keys.C && modifiers == 2 || e.KeyCode == Keys.V && modifiers == 2)
+            {
+                status.Text = "Ctrl+C and Ctrl+V are used to transfer the selection.";
+                return;
+            }
+            SaveShortcut(modifiers, e.KeyCode);
+        }
+
+        private void SaveShortcut(uint modifiers, Keys shortcutKey)
+        {
+            if (!hotkey.Set(modifiers, shortcutKey))
+            {
+                status.Text = "That shortcut is unavailable. Choose a different combination.";
+                return;
+            }
+            RefreshShortcut();
+            try
+            {
+                Registry.SetValue(@"HKEY_CURRENT_USER\" + Preferences, "Shortcut", modifiers + ":" + (int)shortcutKey);
+            }
+            catch (Exception) { status.Text = "Shortcut set for this session. Windows could not save it."; }
+        }
+
+        private void RefreshShortcut()
+        {
+            shortcut.Text = Hotkey.Describe(hotkey.Modifiers, hotkey.Key);
+            status.Text = ShortcutStatus;
+        }
+    }
+
+    internal sealed class TextEditor : Form
+    {
+        private readonly TextBox source = TextField(false);
+        private readonly TextBox output = TextField(true);
+        private readonly Button run = new Button { Text = "Add nikud", AutoSize = true };
+        private readonly Button copy = new Button { Text = "Copy result", AutoSize = true, Enabled = false };
+        private readonly Label status = new Label { AutoSize = true, MaximumSize = new Size(490, 0) };
+
+        internal TextEditor(Icon artwork)
+        {
+            Text = "Nikud — text editor";
+            Icon = artwork;
+            StartPosition = FormStartPosition.CenterScreen;
+            AutoScaleMode = AutoScaleMode.Dpi;
+            ClientSize = new Size(530, 330);
+            MinimumSize = new Size(460, 310);
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), RowCount = 7, ColumnCount = 1 };
+            for (int row = 0; row < 7; row++)
+                layout.RowStyles.Add(row == 1 || row == 4 ? new RowStyle(SizeType.Percent, 50) : new RowStyle(SizeType.AutoSize));
+            layout.Controls.Add(new Label { Text = "Hebrew text", AutoSize = true }, 0, 0);
+            layout.Controls.Add(source, 0, 1);
+            layout.Controls.Add(run, 0, 2);
+            layout.Controls.Add(new Label { Text = "With nikud", AutoSize = true }, 0, 3);
+            layout.Controls.Add(output, 0, 4);
+            layout.Controls.Add(copy, 0, 5);
+            layout.Controls.Add(status, 0, 6);
+            Controls.Add(layout);
+            source.MaxLength = 1500;
+            source.TextChanged += (sender, args) => { output.Clear(); copy.Enabled = false; status.Text = ""; };
+            run.Click += async (sender, args) =>
+            {
+                var text = source.Text;
+                source.ReadOnly = true;
+                run.Enabled = false;
+                copy.Enabled = false;
+                output.Clear();
+                status.Text = "Adding nikud…";
+                try
+                {
+                    var words = await Engine.VocalizeAsync(text);
+                    if (IsDisposed) return;
+                    if (words.Any(word => word.Readings.Count > 1))
+                        using (var dialog = new ReadingsDialog(text, words, artwork))
+                            if (dialog.ShowDialog(this) != DialogResult.OK) { status.Text = "Cancelled."; return; }
+                    output.Text = Engine.Render(text, words);
+                    copy.Enabled = output.TextLength > 0;
+                    status.Text = output.Text == text ? "No additional nikud was found." : "Nikud added.";
+                }
+                catch (Exception ex) { if (!IsDisposed) status.Text = ex.Message; }
+                finally { if (!IsDisposed) { run.Enabled = true; source.ReadOnly = false; } }
+            };
+            copy.Click += (sender, args) =>
+            {
+                try { Clipboard.SetText(output.Text); status.Text = "Copied."; }
+                catch (ExternalException) { status.Text = "The clipboard is busy. Try again."; }
+            };
+        }
+
+        private static TextBox TextField(bool readOnly)
+        {
+            return new TextBox
+            {
+                Multiline = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical,
+                RightToLeft = RightToLeft.Yes, ReadOnly = readOnly, Font = new Font("Segoe UI", 13),
+            };
+        }
+    }
+
+    internal sealed class ReadingsDialog : Form
+    {
+        private readonly List<ComboBox> choices = new List<ComboBox>();
+        private readonly Button apply = new Button { Text = "Apply", AutoSize = true };
+
+        internal ReadingsDialog(string source, List<Word> words, Icon artwork)
+        {
+            Text = "Nikud — choose a reading";
+            Icon = artwork;
+            Font = SystemFonts.MessageBoxFont;
+            AutoScaleMode = AutoScaleMode.Dpi;
+            StartPosition = FormStartPosition.CenterScreen;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            var ambiguous = words.Where(word => word.Readings.Count > 1).ToList();
+            ClientSize = new Size(460, Math.Min(435, 120 + ambiguous.Count * 65));
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 3 };
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.Controls.Add(new Label { Text = "Choose the intended reading for each word.", AutoSize = true }, 0, 0);
+            var list = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+            var rows = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, ColumnCount = 1 };
+            rows.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            foreach (var word in ambiguous)
+            {
+                var start = Math.Max(0, word.Start - 17);
+                var end = Math.Min(source.Length, word.Start + word.Original.Length + 17);
+                var context = source.Substring(start, end - start).Replace('\r', ' ').Replace('\n', ' ');
+                var label = new Label { Text = word.Original + "  (" + context + ")", RightToLeft = RightToLeft.Yes, AutoSize = true, Dock = DockStyle.Fill };
+                rows.Controls.Add(label);
+                var select = new ComboBox {
+                    AccessibleName = "Reading for " + word.Original, RightToLeft = RightToLeft.Yes, Dock = DockStyle.Top,
+                    DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11),
+                };
+                foreach (var reading in word.Readings)
+                    select.Items.Add(reading.Text + " — " + reading.Meaning);
+                select.SelectedIndex = word.Selected;
+                select.SelectedIndexChanged += (sender, args) => UpdateApply();
+                choices.Add(select);
+                rows.Controls.Add(select);
+            }
+            list.Controls.Add(rows);
+            layout.Controls.Add(list, 0, 1);
+            var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill, AutoSize = true };
+            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+            apply.Click += (sender, args) =>
+            {
+                for (int i = 0; i < choices.Count; i++) ambiguous[i].Selected = choices[i].SelectedIndex;
+                DialogResult = DialogResult.OK;
+            };
+            buttons.Controls.Add(cancel);
+            buttons.Controls.Add(apply);
+            layout.Controls.Add(buttons, 0, 2);
+            Controls.Add(layout);
+            AcceptButton = apply;
+            CancelButton = cancel;
+            UpdateApply();
+        }
+
+        private void UpdateApply() { apply.Enabled = choices.All(choice => choice.SelectedIndex >= 0); }
+    }
+}

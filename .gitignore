@@ -1,0 +1,7 @@
+/Nikud.exe
+/NikudEngine/
+/.venv/
+**/__pycache__/
+/offline/build/
+/offline/dist/
+/offline/*.spec
