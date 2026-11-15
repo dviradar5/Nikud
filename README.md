@@ -58,10 +58,6 @@ Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפּ
 
 Nikud runs locally and requires no API key or account.
 
-## Checking vocalization quality
-
-After installing the Python dependencies, run `python offline/audit_vocalization.py` to compare against a sample of isolated words, everyday sentences, and pointed passages from Proverbs and Genesis. The report distinguishes readings offered in the chooser from the app's default in context. Biblical comparisons use the published vowel points and omit cantillation. Review biblical results against an edition of the text before using them. [Pointed Bible reference](https://www.mechon-mamre.org/i/t/t2803.htm) · [Hebrew number tables](https://www.gov.il/BlobFolder/dynamiccollectorresultitem/lashon-habaa-havanat-hanikra-yb/he/mea_lashon-habaa-havanat-hanikra.pdf)
-
 ## Report a problem
 
 On Windows, use **Report a bug** or **Report a word mistake** in Settings or in the tray menu. On macOS, both links are below the editor. Reports are public GitHub issues assigned to the maintainer. Use a sample sentence if context matters. Nikud leaves the text fields empty so you can choose what to share.
