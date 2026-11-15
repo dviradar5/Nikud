@@ -45,7 +45,7 @@ namespace Nikud
             layout.Controls.Add(clear, 2, 1);
             AddFullRow(layout, new Label
             {
-                Text = "Click the shortcut box, then press a key combination with Ctrl, Alt, or Win. Select Hebrew text in any supported app and press the shortcut to add nikud in place.",
+                Text = "Click the shortcut box, then press a combination with Ctrl, Alt, or Win. Use the shortcut on a Hebrew selection to add nikud, or to remove it when every word has marks.",
                 AutoSize = true, MaximumSize = new Size(380, 0), ForeColor = SystemColors.GrayText,
                 Margin = new Padding(3, 5, 3, 8),
             }, 2);
@@ -165,7 +165,7 @@ namespace Nikud
     {
         private readonly TextBox source = TextField(false);
         private readonly TextBox output = TextField(true);
-        private readonly Button run = new Button { Text = "Add nikud", AutoSize = true };
+        private readonly Button run = new Button { Text = "Add or remove nikud", AutoSize = true };
         private readonly Button copy = new Button { Text = "Copy result", AutoSize = true, Enabled = false };
         private readonly Label status = new Label { AutoSize = true, MaximumSize = new Size(490, 0) };
 
@@ -183,7 +183,7 @@ namespace Nikud
             layout.Controls.Add(new Label { Text = "Hebrew text", AutoSize = true }, 0, 0);
             layout.Controls.Add(source, 0, 1);
             layout.Controls.Add(run, 0, 2);
-            layout.Controls.Add(new Label { Text = "With nikud", AutoSize = true }, 0, 3);
+            layout.Controls.Add(new Label { Text = "Result", AutoSize = true }, 0, 3);
             layout.Controls.Add(output, 0, 4);
             layout.Controls.Add(copy, 0, 5);
             layout.Controls.Add(status, 0, 6);
@@ -197,7 +197,7 @@ namespace Nikud
                 run.Enabled = false;
                 copy.Enabled = false;
                 output.Clear();
-                status.Text = "Adding nikud…";
+                status.Text = "Processing text…";
                 try
                 {
                     var words = await Engine.VocalizeAsync(text);
@@ -207,7 +207,7 @@ namespace Nikud
                             if (dialog.ShowDialog(this) != DialogResult.OK) { status.Text = "Cancelled."; return; }
                     output.Text = Engine.Render(text, words);
                     copy.Enabled = output.TextLength > 0;
-                    status.Text = output.Text == text ? "No additional nikud was found." : "Nikud added.";
+                    status.Text = output.Text == text ? "The text already matches the result." : "Nikud updated.";
                 }
                 catch (Exception ex) { if (!IsDisposed) status.Text = ex.Message; }
                 finally { if (!IsDisposed) { run.Enabled = true; source.ReadOnly = false; } }

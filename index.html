@@ -43,13 +43,13 @@
       <label for="source">Hebrew text</label>
       <textarea id="source" lang="he" dir="rtl" placeholder="הקלידו מילה או משפט" maxlength="1500"></textarea>
       <div class="actions">
-        <button id="run" class="primary" title="Ctrl or ⌘ + Enter">Add nikud</button>
+        <button id="run" class="primary" title="Ctrl or ⌘ + Enter">Add or remove nikud</button>
         <button id="paste">Paste</button>
       </div>
     </section>
     <section class="panel">
-      <h2>With nikud</h2>
-      <div id="result" lang="he" dir="rtl" aria-label="Vocalized Hebrew text"></div>
+      <h2>Result</h2>
+      <div id="result" lang="he" dir="rtl" aria-label="Processed Hebrew text"></div>
       <button id="copy" disabled>Copy result</button>
     </section>
   </div>
@@ -157,7 +157,7 @@
     snapshot = '';
     showChoices(-1);
     render();
-    status.textContent = 'Adding nikud…';
+    status.textContent = 'Processing text…';
     try {
       const response = await fetch('/api/nikud', {
         method: 'POST',
@@ -170,7 +170,7 @@
       snapshot = submitted;
       render();
       showChoices(unresolvedIndex(), true);
-      if (!status.textContent) status.textContent = 'Nikud added.';
+      if (!status.textContent) status.textContent = 'Nikud updated.';
     } catch (error) {
       status.textContent = error.message;
     } finally {

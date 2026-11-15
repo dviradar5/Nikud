@@ -38,7 +38,18 @@ namespace Nikud
 
         internal static async Task<List<Word>> VocalizeAsync(string text)
         {
-            if (!Hebrew.IsMatch(text)) throw new InvalidOperationException("Select at least one Hebrew word.");
+            var spans = Hebrew.Matches(text).Cast<Match>().ToArray();
+            if (spans.Length == 0) throw new InvalidOperationException("Select at least one Hebrew word.");
+            if (spans.All(span => Marks.IsMatch(span.Value)))
+            {
+                return spans.Select(span => new Word
+                {
+                    Start = span.Index,
+                    Original = span.Value,
+                    Readings = new List<Reading> { new Reading { Text = Marks.Replace(span.Value, ""), Meaning = "" } },
+                    Selected = 0,
+                }).ToList();
+            }
             if (!Available) throw new InvalidOperationException("Extract the entire Nikud ZIP and keep the NikudEngine folder beside Nikud.exe.");
             var body = new JavaScriptSerializer().Serialize(new { text });
             var start = new ProcessStartInfo(Executable)

@@ -2,13 +2,18 @@
 
 Add vowel points to a Hebrew word or sentence without sending the text off your computer. On Windows, select text in Word or another editor and use a keyboard shortcut to add nikud in place. On macOS, use the local browser interface.
 
-[Download the latest release](https://github.com/dviradar5/Nikud/releases/latest)
+| Platform | Download |
+| --- | --- |
+| Windows x64 | [Nikud-Offline-Windows.zip](https://github.com/dviradar5/Nikud/releases/latest/download/Nikud-Offline-Windows.zip) |
+| macOS | [Nikud-Offline-macOS.zip](https://github.com/dviradar5/Nikud/releases/latest/download/Nikud-Offline-macOS.zip) |
+
+These links download the latest release packages. [All releases](https://github.com/dviradar5/Nikud/releases)
 
 ## Windows
 
-1. Download **Nikud-Offline-Windows.zip** for Windows x64. Extract the entire ZIP and open **Nikud.exe**. Keep the `NikudEngine` folder beside it.
+1. Download the Windows ZIP above. Right-click it and choose **Extract All**. Open **Nikud.exe** inside the extracted `nikud` folder. Keep the `NikudEngine` folder beside it.
 2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. To change it, click **Vocalize selection** and press a combination that includes **Ctrl**, **Alt**, or **Win**.
-3. Select an editable word or sentence and press the shortcut. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
+3. Select an editable word or sentence and press the shortcut to add or remove nikud. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
 
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
@@ -16,19 +21,29 @@ The shortcut uses standard Windows copy and paste. Keep the selection active whi
 
 ## macOS
 
-Download **Nikud-Offline-macOS.zip**, extract it, and install [Python 3.12](https://www.python.org/downloads/). In Terminal, change to the extracted `nikud` folder and run:
+1. Download the macOS ZIP above and double-click the ZIP in Finder to extract it.
+2. Install [Python 3.12](https://www.python.org/downloads/). Open Terminal, type `cd ` with a trailing space, drag the extracted `nikud` folder into Terminal, then press Return.
+3. Run:
 
 ```sh
 bash macos/start.sh
 ```
 
-The first run installs dependencies and requires an internet connection. Nikud opens a local browser tab. Paste the Hebrew text, select **Add nikud**, then **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it. The same launcher works from a Git clone. [macOS setup guide](macos/)
+The first run installs dependencies and requires an internet connection. Nikud opens a local browser tab. Paste the Hebrew text, select **Add or remove nikud**, then select **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it. The same launcher works from a Git clone. [macOS setup guide](macos/)
+
+## Add, remove, or redo nikud
+
+- **Unpointed text** gets nikud.
+- **Pointed text** loses its nikud when every Hebrew word in the selection has marks. Spaces, punctuation, and surrounding non-Hebrew text are preserved.
+- **Mixed text** gets nikud on the unpointed words and keeps existing marks on the others.
+
+To redo a single word on Windows, select it and press the shortcut once to remove its nikud. Select the resulting word again and press the same shortcut to add nikud or choose a reading. On macOS, paste the unpointed result back into the input box before running it again.
 
 ## Readings and spelling
 
 Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפָּר** (hairdresser), or **סָפַר** (counted), among other readings. In `קראתי ספר אתמול.`, the sentence provides context for **סֵפֶר**. The app suggests the contextual reading and displays available alternatives.
 
-- **Whole text.** The app preserves your Hebrew letters, spacing, punctuation, and surrounding text. Words that already carry Hebrew marks stay as entered. If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
+- **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
 

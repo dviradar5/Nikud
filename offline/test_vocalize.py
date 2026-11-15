@@ -46,6 +46,20 @@ class VocalizeTests(unittest.TestCase):
         self.assertEqual([word["start"] for word in words], [3, 10])
         self.assertEqual([word["original"] for word in words], ["קראתי", "ספר"])
 
+    @patch("app.readings")
+    def test_browser_removes_marks_from_an_already_pointed_selection(self, model):
+        words = for_browser("📚 סֵפֶר, שָׁלוֹם!")
+        self.assertEqual([word["start"] for word in words], [3, 10])
+        self.assertEqual([word["choices"][0]["text"] for word in words], ["ספר", "שלום"])
+        model.assert_not_called()
+
+    def test_browser_keeps_existing_marks_in_mixed_text(self):
+        first, second = for_browser("סֵפֶר שלום")
+        self.assertEqual(first["choices"][0]["text"], "סֵפֶר")
+        suggested = second["choices"][second["selected"]]["text"]
+        self.assertEqual(plain(suggested), "שלום")
+        self.assertNotEqual(suggested, "שלום")
+
     def test_mixed_input_and_already_pointed_word(self):
         words = readings("שלום, שָׁלוֹם. ABC 42")
         self.assertTrue(all(plain(item["text"]) == "שלום" for word in words for item in word["readings"]))

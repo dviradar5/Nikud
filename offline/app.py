@@ -1,18 +1,29 @@
 """Serve the local browser interface for macOS."""
 
 import json
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from secrets import token_hex
 from threading import Timer
 import webbrowser
 
-from vocalize import WORD, readings
+from vocalize import MARKS, WORD, readings
+
+NIKUD = re.compile(rf"[{MARKS}]")
 
 
 def for_browser(text):
+    spans = list(WORD.finditer(text))
+    if spans and all(NIKUD.search(match.group()) for match in spans):
+        options = [
+            {"preferred": 0, "readings": [{"text": NIKUD.sub("", match.group()), "meaning": ""}]}
+            for match in spans
+        ]
+    else:
+        options = readings(text)
     words = []
-    for match, word in zip(WORD.finditer(text), readings(text), strict=True):
+    for match, word in zip(spans, options, strict=True):
         choices = word["readings"]
         words.append({
             "original": match.group(),

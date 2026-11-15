@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyInformationalVersion("0.2.1")]
+[assembly: AssemblyInformationalVersion("0.2.2")]
 
 namespace Nikud
 {
@@ -139,12 +139,12 @@ namespace Nikud
                 var result = Engine.Render(source, words);
                 if (source == result)
                 {
-                    Notify("No additional nikud was found for this selection.");
+                    Notify("The selection already matches the result.");
                     return;
                 }
                 if (!await target.ReplaceAsync(source, result))
                     Notify("Could not replace the original selection. Select editable text and try again.");
-                else settings.ShowActivity("Sent the vocalized selection back to the original app.");
+                else settings.ShowActivity("Updated the selection in the original app.");
             }
             catch (Exception ex) { Notify(ex.Message); }
             finally { busy = false; }
