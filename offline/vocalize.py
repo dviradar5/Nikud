@@ -59,8 +59,13 @@ PREDICATE_PATTERN = re.compile(
 REVIEWED_READINGS = {
     "את": {
         "אֶת": "מילית לפני מושא ישיר מיודע",
-        "אֵת": "כלי חפירה או מילית מושא במקרא",
+        "אֵת": ("כלי חפירה", "מילית לפני מושא ישיר במקרא"),
         "אַתְּ": "כינוי גוף שני בנקבה יחידה",
+    },
+    "קורה": {
+        "קוֹרֶה": "מתרחש",
+        "קוֹרָה": ("קורת עץ או רכיב נושא במבנה", "מתרחשת", "כוסה בגג"),
+        "קוֹרָהּ": "הקור שלה",
     },
     "הכי": {"הֲכִי": "ביותר או מילת שאלה במקרא", "הָכִי": "כך בארמית"},
     "ללכת": {"לָלֶכֶת": "שם הפועל של הָלַךְ"},
@@ -188,11 +193,19 @@ def lexicon():
             if WORD.fullmatch(form):
                 part = PARTS_OF_SPEECH.get(re.split(r"[.;]", tags, maxsplit=1)[0], "")
                 meaning = f"נטייה של {lemma}" if form_key(lemma) != form_key(form) else part
-                entries[plain(form)].setdefault(form_key(form), (form, meaning))
+                _, meanings = entries[plain(form)].setdefault(form_key(form), (form, {}))
+                if meaning or not meanings:
+                    if meaning:
+                        meanings.pop("", None)
+                    meanings[meaning] = None
     for word, forms in MEANINGS.items():
         for form, meaning in forms.items():
-            entries[word][form_key(form)] = (form, meaning)
+            entries[word][form_key(form)] = (form, {meaning: None})
     return entries
+
+
+def expand_readings(groups):
+    return [(form, meaning) for form, meanings in groups for meaning in meanings]
 
 
 def readings(text):
@@ -222,7 +235,8 @@ def readings(text):
         elif word in REVIEWED_READINGS or word in PREDICATE_FORMS:
             candidates = (REVIEWED_READINGS[word] if word in REVIEWED_READINGS else
                           dict(zip(PREDICATE_FORMS[word], ("צורת הזכר", "צורת הנקבה"), strict=True)))
-            options = list(candidates.items())
+            options = expand_readings((form, (meaning,) if isinstance(meaning, str) else meaning)
+                                      for form, meaning in candidates.items())
             following = ""
             if index + 1 < len(words):
                 gap = text[spans[index].end():spans[index + 1].start()]
@@ -241,11 +255,11 @@ def readings(text):
             model = restore_lexical_dagesh(model, candidates)
             model_key = form_key(model)
             if model_key in candidates or (model != word and len(words) > 1) or not candidates:
-                _, meaning = candidates.pop(model_key, (model, ""))
-                options = [(model, meaning), *candidates.values()]
+                _, meanings = candidates.pop(model_key, (model, ("",)))
+                options = expand_readings([(model, meanings), *candidates.values()])
                 preferred = 0
             else:
-                options = list(candidates.values())
+                options = expand_readings(candidates.values())
                 preferred = 0 if len(options) == 1 else -1
             if len(words) == 1 and len(options) > 1:
                 preferred = -1

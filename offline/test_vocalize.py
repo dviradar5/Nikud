@@ -6,6 +6,19 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_homographs_keep_separate_meanings_in_the_chooser(self):
+        word = readings("קורה")[0]
+        self.assertEqual(word["preferred"], -1)
+        beam_form = [option["meaning"] for option in word["readings"]
+                     if form_key(option["text"]) == form_key("קוֹרָה")]
+        self.assertIn("קורת עץ או רכיב נושא במבנה", beam_form)
+        self.assertIn("מתרחשת", beam_form)
+        self.assertIn({"text": "קוֹרָהּ", "meaning": "הקור שלה"}, word["readings"])
+        contextual = readings("מה קורה?")[-1]
+        self.assertGreaterEqual(contextual["preferred"], 0)
+        self.assertEqual(form_key(contextual["readings"][contextual["preferred"]]["text"]),
+                         form_key("קוֹרֶה"))
+
     def test_superlative_suggests_agreement_and_keeps_alternatives(self):
         words = readings("את הכי יפה")
         picked = [form_key(word["readings"][word["preferred"]]["text"]) for word in words]
@@ -29,6 +42,8 @@ class VocalizeTests(unittest.TestCase):
         self.assertEqual(result["preferred"], -1)
         self.assertEqual({form_key(item["text"]) for item in result["readings"]},
                          {form_key(word) for word in ("אֶת", "אֵת", "אַתְּ")})
+        self.assertEqual({item["meaning"] for item in result["readings"] if item["text"] == "אֵת"},
+                         {"כלי חפירה", "מילית לפני מושא ישיר במקרא"})
 
     def test_et_uses_context_for_a_direct_object_or_feminine_pronoun(self):
         for text, index, expected in (("ראיתי את הכלב.", 1, "אֶת"),

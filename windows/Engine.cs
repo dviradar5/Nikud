@@ -94,17 +94,24 @@ namespace Nikud
                 var span = spans[i];
                 var word = new Word { Start = span.Index, Original = span.Value, Readings = new List<Reading>(), Selected = -1 };
                 int preferred = (int)data[i]["preferred"];
-                string preferredText = null;
+                Reading preferredReading = null;
                 int readingIndex = 0;
                 foreach (var option in Objects(data[i]["readings"]))
                 {
                     var pointed = ((string)option["text"]).Normalize();
-                    if (readingIndex++ == preferred) preferredText = pointed;
-                    if (Strip(pointed) == Strip(span.Value) && word.Readings.All(item => item.Text != pointed))
-                        word.Readings.Add(new Reading { Text = pointed, Meaning = (string)option["meaning"] });
+                    var meaning = (string)option["meaning"];
+                    bool isPreferred = readingIndex++ == preferred;
+                    if (Strip(pointed) != Strip(span.Value)) continue;
+                    var reading = word.Readings.Find(item => item.Text == pointed && item.Meaning == meaning);
+                    if (reading == null)
+                    {
+                        reading = new Reading { Text = pointed, Meaning = meaning };
+                        word.Readings.Add(reading);
+                    }
+                    if (isPreferred) preferredReading = reading;
                 }
                 if (word.Readings.Count == 1) word.Selected = 0;
-                else if (spans.Length > 1) word.Selected = word.Readings.FindIndex(item => item.Text == preferredText);
+                else if (spans.Length > 1) word.Selected = word.Readings.IndexOf(preferredReading);
                 words.Add(word);
             }
             return words;
