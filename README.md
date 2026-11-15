@@ -16,6 +16,8 @@ The shortcut uses standard Windows copy and paste. Keep the selection active whi
 
 ## macOS
 
+Starting from a Git clone or GitHub's **Code → Download ZIP**? See [macos/](macos/) for the source launcher. The release ZIP can be run with the commands below.
+
 Download **Nikud-Offline-macOS.zip**, extract it, and install [Python 3.12](https://www.python.org/downloads/). In Terminal, change to the extracted `nikud` folder and run:
 
 ```sh
