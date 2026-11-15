@@ -9,6 +9,15 @@ Add vowel points to a Hebrew word or sentence without sending the text off your 
 
 These links download the latest release packages. [All releases](https://github.com/dviradar5/Nikud/releases)
 
+## What happens when you select a sentence
+
+1. On Windows, the tray app temporarily uses the clipboard to read the selected text. On macOS, the browser editor passes the text to a local Python process.
+2. Nakdimon predicts vowel points, dagesh, and shin or sin dots using the text around each character. Nikud lines up the prediction with the Hebrew words in the original selection.
+3. UniMorph supplies alternative readings for the same spelling. A small set of reviewed entries covers common cases such as **חָמֵשׁ**. On Windows, the chooser shows available alternatives and preselects the contextual suggestion when one is available. The macOS editor makes alternatives available by clicking a highlighted word.
+4. On Windows, Nikud checks that the selection still matches before pasting the result back. On macOS, use **Copy result**. The app preserves spaces, punctuation, and non-Hebrew text.
+
+If every Hebrew word in the selection already has nikud, Nikud removes the marks directly. The prediction step is only used when the input contains unpointed words.
+
 ## Windows
 
 1. Download the Windows ZIP above. Right-click it and choose **Extract All**. Open **Nikud.exe** inside the extracted `nikud` folder. Keep the `NikudEngine` folder beside it.
@@ -48,15 +57,6 @@ Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפּ
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
 
 Nikud runs locally and requires no API key or account.
-
-## What happens when you select a sentence
-
-1. On Windows, the tray app temporarily uses the clipboard to read the selected text. On macOS, the browser editor passes the text to a local Python process.
-2. Nakdimon predicts vowel points, dagesh, and shin or sin dots using the text around each character. Nikud lines up the prediction with the Hebrew words in the original selection.
-3. UniMorph supplies alternative readings for the same spelling. A small set of reviewed entries covers common cases such as **חָמֵשׁ**. On Windows, the chooser shows available alternatives and preselects the contextual suggestion when one is available. The macOS editor makes alternatives available by clicking a highlighted word.
-4. On Windows, Nikud checks that the selection still matches before pasting the result back. On macOS, use **Copy result**. The app preserves spaces, punctuation, and non-Hebrew text.
-
-If every Hebrew word in the selection already has nikud, Nikud removes the marks directly. The prediction step is only used when the input contains unpointed words.
 
 ## Checking vocalization quality
 
