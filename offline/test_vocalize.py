@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from app import for_browser
+from biblical_forms import FORMS as BIBLICAL_FORMS
+from vocabulary import GLOSSES
 from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
@@ -12,6 +14,45 @@ class VocalizeTests(unittest.TestCase):
         self.assertEqual({form_key(option["text"]) for option in word["readings"]},
                          {form_key("אִישָּׁה"), form_key("אִישָׁהּ")})
         self.assertEqual(len(word["readings"]), 3)
+
+    def test_added_vocabulary_preserves_the_spelling(self):
+        for entries in (GLOSSES, BIBLICAL_FORMS):
+            for spelling, forms in entries.items():
+                for form in forms:
+                    self.assertEqual(plain(form), spelling)
+
+    def test_audit_homographs_offer_the_missing_forms_and_glosses(self):
+        for spelling, forms in (
+            ("מספר", {"מִסְפָּר", "מְסַפֵּר"}),
+            ("עצב", {"עֶצֶב", "עָצָב", "עִצֵּב"}),
+            ("שר", {"שַׂר", "שָׁר"}),
+            ("באר", {"בְּאֵר", "בֵּאֵר"}),
+        ):
+            with self.subTest(spelling=spelling):
+                result = readings(spelling)[0]
+                glosses = {form_key(option["text"]) for option in result["readings"] if option["meaning"]}
+                self.assertLessEqual({form_key(form) for form in forms}, glosses)
+                self.assertEqual(result["preferred"], -1)
+
+    def test_audit_rare_word_and_same_pointing_with_distinct_glosses(self):
+        dvir = readings("דביר")[0]
+        self.assertEqual(dvir["readings"][dvir["preferred"]]["text"], "דְּבִיר")
+        etzba = readings("אצבע")[0]
+        self.assertEqual(etzba["preferred"], -1)
+        self.assertEqual({option["text"] for option in etzba["readings"]}, {"אֶצְבַּע"})
+        self.assertEqual(len({option["meaning"] for option in etzba["readings"]}), 2)
+
+    def test_audit_number_and_storyteller_use_context(self):
+        for text, expected in (("זה מספר גדול", "מִסְפָּר"), ("הוא מספר סיפור", "מְסַפֵּר")):
+            with self.subTest(text=text):
+                word = readings(text)[1]
+                self.assertGreaterEqual(word["preferred"], 0)
+                self.assertEqual(form_key(word["readings"][word["preferred"]]["text"]), form_key(expected))
+                self.assertEqual(len({form_key(option["text"]) for option in word["readings"]}), 3)
+
+    def test_biblical_fallback_offers_an_attested_reading(self):
+        word = readings("רפאים")[0]
+        self.assertIn({"text": "רְפָאִים", "meaning": "צורה מקראית"}, word["readings"])
 
     def test_isha_achat_suggests_woman_and_keeps_other_readings(self):
         word = readings("אישה אחת")[0]

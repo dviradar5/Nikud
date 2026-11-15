@@ -12,6 +12,9 @@ from onnxruntime import InferenceSession, SessionOptions
 from nakdimon.config import MAIN_MODEL
 from nakdimon.predict import predict
 
+from biblical_forms import FORMS as BIBLICAL_FORMS
+from vocabulary import GLOSSES
+
 
 DATA = Path(__file__).resolve().parent
 MARKS = r"\u05b0-\u05bd\u05bf\u05c1\u05c2\u05c7"
@@ -116,6 +119,10 @@ REVIEWED_CONTEXT = {
     ("חמש", "דקות"): "חָמֵשׁ",
     ("חמש", "הדקות"): "חֲמֵשׁ",
     ("חמש", "עשרה"): "חֲמֵשׁ",
+    ("מספר", "גדול"): "מִסְפָּר",
+    ("מספר", "קטן"): "מִסְפָּר",
+    ("מספר", "ראשוני"): "מִסְפָּר",
+    ("מספר", "הטלפון"): "מִסְפַּר",
 }
 PARTS_OF_SPEECH = {
     "N": "שם עצם", "V": "פועל", "ADJ": "שם תואר", "ADV": "תואר הפועל",
@@ -207,6 +214,10 @@ def lexicon():
     for word, forms in MEANINGS.items():
         for form, meaning in forms.items():
             entries[word][form_key(form)] = (form, {meaning: None})
+    for word, forms in GLOSSES.items():
+        for form, meanings in forms.items():
+            labels = (meanings,) if isinstance(meanings, str) else meanings
+            entries[word][form_key(form)] = (form, dict.fromkeys(labels))
     return entries
 
 
@@ -235,6 +246,10 @@ def readings(text):
     for index, word in enumerate(words):
         model = LETTER.sub(lambda _match: next(letters), plain(word))
         model = suggestions.get(spans[index].start(), model)
+        if index + 1 < len(words):
+            gap = text[spans[index].end():spans[index + 1].start()]
+            if re.fullmatch(r"[\s־-]+", gap):
+                model = REVIEWED_CONTEXT.get((word, plain(words[index + 1])), model)
         if re.search(rf"[{MARKS}{ACCENTS}]", word):
             options = [(word, "")]
             preferred = 0
@@ -243,30 +258,37 @@ def readings(text):
                           dict(zip(PREDICATE_FORMS[word], ("צורת הזכר", "צורת הנקבה"), strict=True)))
             options = expand_readings((form, (meaning,) if isinstance(meaning, str) else meaning)
                                       for form, meaning in candidates.items())
-            following = ""
-            if index + 1 < len(words):
-                gap = text[spans[index].end():spans[index + 1].start()]
-                if re.fullmatch(r"[\s־-]+", gap):
-                    following = words[index + 1]
-            selected = REVIEWED_CONTEXT.get((word, plain(following)), model)
             preferred = 0 if len(options) == 1 else -1
             if len(words) > 1:
                 preferred = next((i for i, (form, _) in enumerate(options)
-                                  if form_key(form) == form_key(selected)), preferred)
+                                  if form_key(form) == form_key(model)), preferred)
                 if preferred > 0:
                     options.insert(0, options.pop(preferred))
                     preferred = 0
         else:
             candidates = dictionary.get(word, {}).copy()
+            if not candidates:
+                candidates = {form_key(form): (form, ("צורה מקראית",))
+                              for form in BIBLICAL_FORMS.get(word, ())}
             model = restore_lexical_dagesh(model, candidates)
             model_key = form_key(model)
-            if model_key in candidates or (model != word and len(words) > 1) or not candidates:
+            if word in GLOSSES and model_key not in candidates and len(words) > 1:
+                # Accept a uniquely attested reading when only the final letter's
+                # marks differ. This preserves legitimate final marks in the lexicon.
+                letter_keys = LETTER.findall(model_key)
+                stem = "".join(letter_keys[:-1])
+                matches = [key for key in candidates if "".join(LETTER.findall(key)[:-1]) == stem]
+                if len(matches) == 1:
+                    model_key = matches[0]
+                    model = candidates[model_key][0]
+            allow_model_only = (word not in GLOSSES and model != word and len(words) > 1)
+            if model_key in candidates or allow_model_only or not candidates:
                 _, meanings = candidates.pop(model_key, (model, ("",)))
                 options = expand_readings([(model, meanings), *candidates.values()])
                 preferred = 0
             else:
                 options = expand_readings(candidates.values())
-                preferred = 0 if len(options) == 1 else -1
+                preferred = 0 if len(candidates) == 1 else -1
             if len(words) == 1 and len(options) > 1:
                 preferred = -1
         result.append({
