@@ -35,7 +35,8 @@ namespace Nikud
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 114));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
-            layout.Controls.Add(new Label { Text = "Nikud", AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(3, 3, 3, 9) }, 0, 0);
+            var title = new Label { Text = "Nikud " + Application.ProductVersion, AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(3, 3, 3, 9) };
+            AddFullRow(layout, title, 0);
             layout.Controls.Add(new Label { Text = "Vocalize selection:", AutoSize = true, Anchor = AnchorStyles.Right }, 0, 1);
             shortcut.AccessibleName = "Vocalize selection shortcut";
             layout.Controls.Add(shortcut, 1, 1);
@@ -250,14 +251,14 @@ namespace Nikud
                 var start = Math.Max(0, word.Start - 17);
                 var end = Math.Min(source.Length, word.Start + word.Original.Length + 17);
                 var context = source.Substring(start, end - start).Replace('\r', ' ').Replace('\n', ' ');
-                var label = new Label { Text = word.Original + "  (" + context + ")", RightToLeft = RightToLeft.Yes, AutoSize = true, Dock = DockStyle.Fill };
+                var label = new Label { Text = context.Trim() == word.Original ? word.Original : word.Original + "  (" + context + ")", RightToLeft = RightToLeft.Yes, AutoSize = true, Dock = DockStyle.Fill };
                 rows.Controls.Add(label);
                 var select = new ComboBox {
                     AccessibleName = "Reading for " + word.Original, RightToLeft = RightToLeft.Yes, Dock = DockStyle.Top,
                     DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11),
                 };
                 foreach (var reading in word.Readings)
-                    select.Items.Add(reading.Text + " — " + reading.Meaning);
+                    select.Items.Add(string.IsNullOrEmpty(reading.Meaning) ? reading.Text : reading.Text + " — " + reading.Meaning);
                 select.SelectedIndex = word.Selected;
                 select.SelectedIndexChanged += (sender, args) => UpdateApply();
                 choices.Add(select);

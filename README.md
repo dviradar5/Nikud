@@ -1,59 +1,57 @@
-# Nikud
+# Nikud · נִקּוּד
 
-A Hebrew vocalizer for Windows and macOS. It runs [Nakdimon](https://github.com/elazarg/nakdimon) locally, with alternate readings from UniMorph and a small glossary. It requires no API key, subscription, or per-use payment. Your text stays on your computer.
+Add vowel points to a Hebrew word or sentence without sending the text off your computer. On Windows, select text in Word or another editor and use a keyboard shortcut to add nikud in place. On macOS, use the local browser interface.
 
-Download the ZIP for your operating system from [GitHub Releases](https://github.com/dviradar5/Nikud/releases/latest).
+[Download the latest release](https://github.com/dviradar5/Nikud/releases/latest)
 
-## Start the app
+## Windows
 
-### Windows
+1. Download **Nikud-Offline-Windows.zip** for Windows x64. Extract the entire ZIP and open **Nikud.exe**. Keep the `NikudEngine` folder beside it.
+2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. To change it, click **Vocalize selection** and press a combination that includes **Ctrl**, **Alt**, or **Win**.
+3. Select an editable word or sentence and press the shortcut. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
 
-1. Extract the entire Windows ZIP, then double-click **Nikud.exe**. Keep the `NikudEngine` folder beside it. The model and its runtime are bundled for Windows x64.
-2. **Nikud Settings** opens and shows your active shortcut. The default is **Ctrl+Shift+J**. Look for the **נִ** icon near the clock or under the **^** button to reopen Settings.
-3. In another app, highlight a Hebrew word or sentence and press the shortcut shown in Settings. Nikud replaces the selection in place.
-4. If multiple readings are available, choose the intended reading in the popup and select **Apply**. **Cancel** leaves the selection as typed.
+Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
-To change the shortcut, click the **Vocalize selection** field and press a combination with **Ctrl**, **Alt**, or **Win**. You can enable **Start with Windows** in the same window. Closing Settings keeps Nikud in the tray. To quit, right-click its icon and choose **Exit**.
+The shortcut uses standard Windows copy and paste. Keep the selection active while Nikud works. Some apps block simulated keystrokes, particularly when they run as administrator. If the shortcut fails, check the last status in Settings and try the built-in editor with `ספר`.
 
-Keep the selection in place while Nikud processes it. The Windows shortcut works in editable fields that accept standard copy and paste. Nikud uses the Windows clipboard temporarily and restores common clipboard formats. Windows can block the shortcut from sending keys to apps running with elevated privileges.
+## macOS
 
-If a shortcut fails, check the last status in **Nikud Settings** and try **Open text editor**. Enter `שלום` and select **Add nikud** to check the bundled engine independently. The text editor is also available from the tray menu.
-
-### macOS
-
-Install [Python 3.12](https://www.python.org/downloads/) and extract the macOS ZIP. Open Terminal, type `cd ` (with a trailing space), drag the extracted `nikud` folder into Terminal, and press Return. Run these once to install the local engine:
+Download **Nikud-Offline-macOS.zip**, extract it, and install [Python 3.12](https://www.python.org/downloads/). In Terminal, change to the extracted `nikud` folder and run:
 
 ```sh
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r offline/requirements.txt
-```
-
-To open Nikud, run:
-
-```sh
 .venv/bin/python offline/app.py
 ```
 
-The launcher opens your browser. Keep the terminal window open while using Nikud. Press Ctrl+C there to quit. If the browser doesn't open automatically, open the local address printed in the terminal.
+The first two commands set up the engine once and require an internet connection. After that, run only the last command. Nikud opens a browser tab on your computer. Paste the Hebrew text, select **Add nikud**, then **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it.
 
-macOS needs internet access for the one-time dependency installation. The app uses a local browser tab to paste, add nikud, and copy the result.
+## Readings and spelling
 
-## Add nikud in the macOS browser tab
+Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפָּר** (hairdresser), or **סָפַר** (counted), among other readings. In `קראתי ספר אתמול.`, the sentence provides context for **סֵפֶר**. The app suggests the contextual reading and displays available alternatives.
 
-1. Paste or type Hebrew text and select **Add nikud**.
-2. When context supports a reading, the app uses it. Click an underlined word to review alternatives.
-3. Select **Copy result** and paste it wherever you need it.
+- **Whole text.** The app preserves your Hebrew letters, spacing, punctuation, and surrounding text. Words that already carry Hebrew marks stay as entered. If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
+- **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
+- **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
 
-Try `ספר` by itself for choices including סֵפֶר (book), סַפָּר (barber), and סָפַר (counted). Try `קראתי ספר אתמול.` for the reading סֵפֶר in context.
+Nikud runs locally and requires no API key or account.
 
-The result preserves the Hebrew letters, spacing, punctuation, and surrounding text. Already pointed words stay as entered. Nakdimon predicts one reading from context. Other readings are available when the spelling appears in the bundled lexicon or glossary, so coverage varies by word.
+## Build and test
 
-## Verify
+Install Python 3.12 and the dependencies in `offline/requirements.txt`, then run `python -m unittest discover -s offline`.
 
-Run `python -m unittest discover -s offline` after installing the offline requirements.
+On Windows, build the tray executable from the repository root with `./windows/Build.ps1` in PowerShell. The script uses the Windows .NET Framework compiler. To bundle the worker, install PyInstaller into the Python environment and run the following from `offline`:
 
-To rebuild the Windows executable, run `./windows/Build.ps1` in PowerShell from the project folder. To freeze the worker, install PyInstaller into the Python 3.12 environment and run the following from `offline`. Copy the resulting `dist/NikudEngine` directory beside `Nikud.exe`.
-
-```
+```sh
 python -m PyInstaller --onedir --name NikudEngine --collect-data nakdimon --add-data "heb_voc.tsv:." vocalize.py
 ```
+
+Place the resulting `dist/NikudEngine` folder beside `Nikud.exe`.
+
+## Credits
+
+- [Nakdimon](https://github.com/elazarg/nakdimon) by Elazar Gershuni and Yuval Pinter provides the Hebrew diacritization model. [Research paper](https://aclanthology.org/2022.findings-naacl.75/)
+- [UniMorph Hebrew](https://github.com/unimorph/heb) provides pointed word forms, lemmas, and grammatical tags. The data comes from Wiktionary and was annotated by Omer Goldman. Short glosses for common ambiguous words are written for Nikud.
+- [Shift Happens](https://github.com/Elaad-Adar/shift-happens) by Elaad Adar inspired the tray and keyboard shortcut workflow.
+
+See [third-party attribution](offline/ATTRIBUTION.md) for data sources and license details. Problems and suggestions are welcome in [GitHub Issues](https://github.com/dviradar5/Nikud/issues).

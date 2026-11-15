@@ -1,10 +1,13 @@
 using System;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+
+[assembly: AssemblyInformationalVersion("0.2.0")]
 
 namespace Nikud
 {

@@ -20,13 +20,30 @@ WORD = re.compile(rf"[א-ת](?:[א-ת{MARKS}{ACCENTS}]|['\"׳״](?=[א-ת]))*")
 LETTER = re.compile(rf"[א-ת][{MARKS}]*")
 REMOVE_MARKS = re.compile(rf"[{MARKS}{ACCENTS}]")
 MEANINGS = {
-    "ספר": {"סֵפֶר": "דבר שקוראים", "סַפָּר": "מי שמספר שיער", "סָפַר": "מָנָה", "סְפָר": "אזור גבול", "סַפֵּר": "ספר סיפור"},
-    "בקר": {"בֹּקֶר": "תחילת היום", "בָּקָר": "פרות ושוורים", "בִּקֵּר": "ערך ביקור", "בַּקֵּר": "הוראה לבקר"},
-    "עבר": {"עָבַר": "הלך ממקום למקום או חלף", "עָבָר": "זמן קודם", "עֵבֶר": "צד"},
-    "דבר": {"דָּבָר": "עניין או חפץ", "דִּבֵּר": "אמר מילים", "דַּבֵּר": "הוראה לדבר", "דֶּבֶר": "מחלה"},
+    "ספר": {
+        "סֵפֶר": "יצירה כתובה",
+        "סַפָּר": "מעצב שיער",
+        "סָפַר": "מָנָה פריטים",
+        "סְפָר": "אזור גבול",
+        "סַפֵּר": "ציווי של סִפֵּר",
+        "סִפֵּר": "תיאר במילים",
+        "סְפֹר": "ציווי של סָפַר",
+    },
+    "בקר": {"בֹּקֶר": "ראשית היום", "בָּקָר": "פרות ושוורים", "בִּקֵּר": "ערך ביקור או מתח ביקורת", "בַּקֵּר": "ציווי של בִּקֵּר"},
+    "עבר": {"עָבַר": "חלף או התקדם ממקום למקום", "עָבָר": "הזמן שקדם להווה", "עֵבֶר": "צד או כיוון"},
+    "דבר": {"דָּבָר": "עניין או חפץ", "דִּבֵּר": "התבטא בדיבור", "דַּבֵּר": "ציווי של דִּבֵּר", "דֶּבֶר": "מחלה זיהומית"},
     "שם": {"שֵׁם": "כינוי של אדם או דבר", "שָׁם": "במקום ההוא", "שָׂם": "הניח"},
-    "שלח": {"שָׁלַח": "העביר אל יעד", "שְׁלַח": "הוראה לשלוח"},
+    "שלח": {"שָׁלַח": "העביר אל יעד", "שְׁלַח": "ציווי של שָׁלַח"},
+    "שלום": {"שָׁלוֹם": "ברכת מפגש או מצב של פיוס"},
+    "מכתב": {"מִכְתָּב": "מסר כתוב לנמען"},
 }
+PARTS_OF_SPEECH = {
+    "N": "שם עצם", "V": "פועל", "ADJ": "שם תואר", "ADV": "תואר הפועל",
+    "PRO": "כינוי", "ADP": "מילת יחס", "NUM": "שם מספר",
+}
+SHVA = "\u05b0"
+DAGESH = "\u05bc"
+BEGED_KEFET = "בגדכךפףת"
 
 
 def plain(text):
@@ -35,6 +52,39 @@ def plain(text):
 
 def form_key(text):
     return unicodedata.normalize("NFC", text).replace("\u05c7", "\u05b8")
+
+
+def after_shva_signature(form):
+    form = form_key(form)
+    previous_end = 0
+    previous = ""
+    chunks = []
+    for match in LETTER.finditer(form):
+        letter = match.group()
+        separator = match.string[previous_end:match.start()]
+        if not separator and SHVA in previous and letter[0] in BEGED_KEFET:
+            letter = letter.replace(DAGESH, "")
+        chunks.extend((separator, letter))
+        previous = match.group()
+        previous_end = match.end()
+    return "".join(chunks) + form[previous_end:]
+
+
+def restore_lexical_dagesh(model, candidates):
+    key = form_key(model)
+    if SHVA not in key or key in candidates:
+        return model
+    signature = after_shva_signature(key)
+    matches = [form for candidate, (form, _) in candidates.items()
+               if after_shva_signature(candidate) == signature]
+    if len(matches) == 1:
+        old = LETTER.findall(model)
+        new = LETTER.findall(matches[0])
+        if matches[0].count(DAGESH) > model.count(DAGESH) and all(
+            DAGESH not in before or DAGESH in after for before, after in zip(old, new, strict=True)
+        ):
+            return matches[0]
+    return model
 
 
 @cache
@@ -53,9 +103,10 @@ def lexicon():
             columns = line.rstrip("\n").split("\t")
             if len(columns) != 3:
                 continue
-            lemma, form, _ = columns
+            lemma, form, tags = columns
             if WORD.fullmatch(form):
-                meaning = f"צורה של {lemma}" if form_key(lemma) != form_key(form) else ""
+                part = PARTS_OF_SPEECH.get(re.split(r"[.;]", tags, maxsplit=1)[0], "")
+                meaning = f"נטייה של {lemma}" if form_key(lemma) != form_key(form) else part
                 entries[plain(form)].setdefault(form_key(form), (form, meaning))
     for word, forms in MEANINGS.items():
         for form, meaning in forms.items():
@@ -82,14 +133,15 @@ def readings(text):
             preferred = 0
         else:
             candidates = dictionary.get(word, {}).copy()
+            model = restore_lexical_dagesh(model, candidates)
             model_key = form_key(model)
-            if model_key in candidates or (model != word and (len(words) > 1 or word not in MEANINGS)) or not candidates:
+            if model_key in candidates or (model != word and len(words) > 1) or not candidates:
                 _, meaning = candidates.pop(model_key, (model, ""))
                 options = [(model, meaning), *candidates.values()]
                 preferred = 0
             else:
                 options = list(candidates.values())
-                preferred = -1
+                preferred = 0 if len(options) == 1 else -1
             if len(words) == 1 and len(options) > 1:
                 preferred = -1
         result.append({
