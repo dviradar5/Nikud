@@ -53,7 +53,7 @@ Place the resulting `dist/NikudEngine` folder beside `Nikud.exe`.
 ## Credits
 
 - [Nakdimon](https://github.com/elazarg/nakdimon) by Elazar Gershuni and Yuval Pinter provides the Hebrew diacritization model. [Research paper](https://aclanthology.org/2022.findings-naacl.75/)
-- [UniMorph Hebrew](https://github.com/unimorph/heb) provides pointed word forms, lemmas, and grammatical tags. The data comes from Wiktionary and was annotated by Omer Goldman. Short glosses for common ambiguous words are written for Nikud.
+- Nikud bundles pointed word forms, lemmas, and grammatical tags from UniMorph Hebrew. The dataset credits Wiktionary contributors as its source and Omer Goldman as its annotator. UniMorph distributes the dataset under CC BY-SA 3.0. Short glosses for common ambiguous words are written for Nikud. [UniMorph Hebrew](https://github.com/unimorph/heb#hebrew-heb) · [Wiktionary](https://www.wiktionary.org/) · [Dataset license](https://creativecommons.org/licenses/by-sa/3.0/)
 - [Shift Happens](https://github.com/Elaad-Adar/shift-happens) by Elaad Adar inspired the tray and keyboard shortcut workflow.
 
 See [third-party attribution](offline/ATTRIBUTION.md) for data sources and license details. Problems and suggestions are welcome in [GitHub Issues](https://github.com/dviradar5/Nikud/issues).
