@@ -57,6 +57,16 @@ class VocalizeTests(unittest.TestCase):
                 self.assertNotIn(form_key("חֲמֵשָׁ"), forms)
                 self.assertEqual(word["preferred"], -1 if text == "חמש" else 0)
 
+    def test_masculine_numbers_keep_final_he_unmarked(self):
+        for text, expected in (
+            ("שלושה", "שְׁלוֹשָׁה"), ("שלשה", "שְׁלֹשָׁה"),
+            ("ארבעה", "אַרְבָּעָה"), ("חמישה", "חֲמִישָּׁה"), ("חמשה", "חֲמִשָּׁה"),
+        ):
+            for source in (text, text + " ילדים"):
+                with self.subTest(source=source):
+                    word = readings(source)[0]
+                    self.assertEqual([form["text"] for form in word["readings"]], [expected])
+
     def test_browser_utf16_offsets_and_spacing(self):
         source = "📚 קראתי  ספר!\nABC 42"
         words = for_browser(source)
