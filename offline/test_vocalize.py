@@ -6,6 +6,20 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_et_offers_three_distinct_readings(self):
+        result = readings("את")[0]
+        self.assertEqual(result["preferred"], -1)
+        self.assertEqual({form_key(item["text"]) for item in result["readings"]},
+                         {form_key(word) for word in ("אֶת", "אֵת", "אַתְּ")})
+
+    def test_et_uses_context_for_a_direct_object_or_feminine_pronoun(self):
+        for text, index, expected in (("ראיתי את הכלב.", 1, "אֶת"),
+                                      ("את יודעת את התשובה.", 0, "אַתְּ")):
+            with self.subTest(text=text):
+                word = readings(text)[index]
+                self.assertGreaterEqual(word["preferred"], 0)
+                self.assertEqual(form_key(word["readings"][word["preferred"]]["text"]), form_key(expected))
+
     def test_single_word_offers_readings_without_a_default(self):
         result = readings("ספר")[0]
         forms = {form_key(choice["text"]) for choice in result["readings"]}
