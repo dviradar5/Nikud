@@ -47,6 +47,16 @@ class VocalizeTests(unittest.TestCase):
                 self.assertEqual(word["preferred"], 0)
                 self.assertEqual([form["text"] for form in word["readings"]], ["אֶתְמוֹל"])
 
+    def test_five_offers_the_number_and_never_the_invalid_model_form(self):
+        for text, expected in (("חמש", "חָמֵשׁ"), ("חמש דקות", "חָמֵשׁ"),
+                               ("חמש הדקות", "חֲמֵשׁ")):
+            with self.subTest(text=text):
+                word = readings(text)[0]
+                forms = [form_key(form["text"]) for form in word["readings"]]
+                self.assertEqual(forms[0], form_key(expected))
+                self.assertNotIn(form_key("חֲמֵשָׁ"), forms)
+                self.assertEqual(word["preferred"], -1 if text == "חמש" else 0)
+
     def test_browser_utf16_offsets_and_spacing(self):
         source = "📚 קראתי  ספר!\nABC 42"
         words = for_browser(source)

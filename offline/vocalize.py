@@ -34,8 +34,49 @@ MEANINGS = {
     "דבר": {"דָּבָר": "עניין או חפץ", "דִּבֵּר": "התבטא בדיבור", "דַּבֵּר": "ציווי של דִּבֵּר", "דֶּבֶר": "מחלה זיהומית"},
     "שם": {"שֵׁם": "כינוי של אדם או דבר", "שָׁם": "במקום ההוא", "שָׂם": "הניח"},
     "שלח": {"שָׁלַח": "העביר אל יעד", "שְׁלַח": "ציווי של שָׁלַח"},
+    "אכל": {"אֹכֶל": "מזון"},
+    "בית": {"בַּיִת": "מקום מגורים", "בֵּית": "צורת הנסמך של בַּיִת"},
+}
+# Common spellings reviewed against the number tables and standard pointed forms.
+REVIEWED_READINGS = {
+    "אפס": {"אֶפֶס": "המספר 0", "אָפַס": "תַּם או אזל", "אִפֵּס": "החזיר לערך אפס"},
+    "אחת": {"אַחַת": "המספר 1 בנקבה"},
+    "שתים": {"שְׁתַּיִם": "המספר 2 בנקבה", "שְׁתֵּים": "הצורה שבצירוף שתים עשרה"},
+    "שתיים": {"שְׁתַּיִים": "המספר 2 בנקבה"},
+    "שלוש": {"שָׁלוֹשׁ": "המספר 3 בנקבה", "שְׁלוֹשׁ": "צורת הנסמך של שָׁלוֹשׁ"},
+    "ארבע": {"אַרְבַּע": "המספר 4 בנקבה"},
+    "חמש": {
+        "חָמֵשׁ": "המספר 5 בנקבה",
+        "חֲמֵשׁ": "צורת הנסמך של חָמֵשׁ",
+        "חִמֵּשׁ": "צייד בנשק",
+        "חַמֵּשׁ": "ציווי של חִמֵּשׁ",
+        "חֻמַּשׁ": "צוּיַּד בנשק",
+    },
+    "חמשה": {"חֲמִשָּׁה": "המספר 5 בזכר"},
+    "חמישה": {"חֲמִישָּׁה": "המספר 5 בזכר"},
+    "שש": {"שֵׁשׁ": "המספר 6 בנקבה", "שָׂשׂ": "שָׂמַח"},
+    "שבע": {"שֶׁבַע": "המספר 7 בנקבה", "שְׁבַע": "צורת הנסמך של שֶׁבַע", "שָׂבֵעַ": "שאכל די צורכו", "שָׂבַע": "אכל די צורכו"},
+    "שמונה": {"שְׁמוֹנֶה": "המספר 8 בנקבה", "שְׁמוֹנָה": "המספר 8 בזכר", "שֶׁמֻּנָּה": "שקיבל מינוי"},
+    "תשע": {"תֵּשַׁע": "המספר 9 בנקבה", "תְּשַׁע": "צורת הנסמך של תֵּשַׁע"},
+    "עשר": {"עֶשֶׂר": "המספר 10 בנקבה", "עָשָׂר": "הרכיב השני במספרים 11–19 בזכר"},
+    "מאה": {"מֵאָה": "המספר 100"},
+    "אלף": {"אֶלֶף": "המספר 1000", "אִלֵּף": "הרגיל או אימן", "אַלֵּף": "ציווי של אִלֵּף"},
+    "אתמול": {"אֶתְמוֹל": "היום שלפני היום הנוכחי"},
+    "מחר": {"מָחָר": "היום שלאחר היום הנוכחי"},
+    "עכשיו": {"עַכְשָׁיו": "בעת הזאת"},
     "שלום": {"שָׁלוֹם": "ברכת מפגש או מצב של פיוס"},
+    "תפוח": {"תַּפּוּחַ": "פרי עץ התפוח", "תָּפוּחַ": "שהתנפח"},
+    "פתוח": {"פָּתוּחַ": "שאינו סגור"},
+    "גבוה": {"גָּבוֹהַּ": "שגובהו רב"},
     "מכתב": {"מִכְתָּב": "מסר כתוב לנמען"},
+    "כפתור": {"כַּפְתּוֹר": "אביזר רכיסה או לחצן"},
+    "בוקר": {"בֹּקֶר": "ראשית היום", "בּוֹקֵר": "רועה בקר"},
+    "אוכל": {"אֹכֶל": "מזון", "אוֹכֵל": "צורך מזון", "אוּכַל": "אהיה מסוגל"},
+}
+REVIEWED_CONTEXT = {
+    ("חמש", "דקות"): "חָמֵשׁ",
+    ("חמש", "הדקות"): "חֲמֵשׁ",
+    ("חמש", "עשרה"): "חֲמֵשׁ",
 }
 PARTS_OF_SPEECH = {
     "N": "שם עצם", "V": "פועל", "ADJ": "שם תואר", "ADV": "תואר הפועל",
@@ -115,7 +156,8 @@ def lexicon():
 
 
 def readings(text):
-    words = WORD.findall(text)
+    spans = list(WORD.finditer(text))
+    words = [match.group() for match in spans]
     if not words:
         raise ValueError("Enter at least one Hebrew word.")
     unpointed = plain(text)
@@ -126,14 +168,27 @@ def readings(text):
     letters = iter(predicted)
     result = []
     dictionary = lexicon()
-    for word in words:
+    for index, word in enumerate(words):
         model = LETTER.sub(lambda _match: next(letters), plain(word))
         if re.search(rf"[{MARKS}{ACCENTS}]", word):
             options = [(word, "")]
             preferred = 0
-        elif word == "אתמול":
-            options = [("אֶתְמוֹל", "היום שלפני היום הנוכחי")]
-            preferred = 0
+        elif word in REVIEWED_READINGS:
+            candidates = REVIEWED_READINGS[word]
+            options = list(candidates.items())
+            following = ""
+            if index + 1 < len(words):
+                gap = text[spans[index].end():spans[index + 1].start()]
+                if re.fullmatch(r"[\s־-]+", gap):
+                    following = words[index + 1]
+            selected = REVIEWED_CONTEXT.get((word, plain(following)), model)
+            preferred = 0 if len(options) == 1 else -1
+            if len(words) > 1:
+                preferred = next((i for i, (form, _) in enumerate(options)
+                                  if form_key(form) == form_key(selected)), preferred)
+                if preferred > 0:
+                    options.insert(0, options.pop(preferred))
+                    preferred = 0
         else:
             candidates = dictionary.get(word, {}).copy()
             model = restore_lexical_dagesh(model, candidates)

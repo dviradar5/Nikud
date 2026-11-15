@@ -49,6 +49,19 @@ Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפּ
 
 Nikud runs locally and requires no API key or account.
 
+## What happens when you select a sentence
+
+1. On Windows, the tray app temporarily uses the clipboard to read the selected text. On macOS, the browser editor passes the text to a local Python process.
+2. Nakdimon predicts vowel points, dagesh, and shin or sin dots using the text around each character. Nikud lines up the prediction with the Hebrew words in the original selection.
+3. UniMorph supplies alternative readings for the same spelling. A small set of reviewed entries covers common cases such as **חָמֵשׁ**. On Windows, the chooser shows available alternatives and preselects the contextual suggestion when one is available. The macOS editor makes alternatives available by clicking a highlighted word.
+4. On Windows, Nikud checks that the selection still matches before pasting the result back. On macOS, use **Copy result**. The app preserves spaces, punctuation, and non-Hebrew text.
+
+If every Hebrew word in the selection already has nikud, Nikud removes the marks directly. The prediction step is only used when the input contains unpointed words.
+
+## Checking vocalization quality
+
+After installing the Python dependencies, run `python offline/audit_vocalization.py` to compare against a sample of isolated words, everyday sentences, and pointed passages from Proverbs and Genesis. The report distinguishes readings offered in the chooser from the app's default in context. Biblical comparisons use the published vowel points and omit cantillation. Review biblical results against an edition of the text before using them. [Pointed Bible reference](https://www.mechon-mamre.org/i/t/t2803.htm) · [Hebrew number tables](https://www.gov.il/BlobFolder/dynamiccollectorresultitem/lashon-habaa-havanat-hanikra-yb/he/mea_lashon-habaa-havanat-hanikra.pdf)
+
 ## Report a problem
 
 On Windows, use **Report a bug** or **Report a word mistake** in Settings or in the tray menu. On macOS, both links are below the editor. Reports are public GitHub issues assigned to the maintainer. Use a sample sentence if context matters. Nikud leaves the text fields empty so you can choose what to share.
