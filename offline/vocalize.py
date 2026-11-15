@@ -36,7 +36,25 @@ MEANINGS = {
     "שלח": {"שָׁלַח": "העביר אל יעד", "שְׁלַח": "ציווי של שָׁלַח"},
     "אכל": {"אֹכֶל": "מזון"},
     "בית": {"בַּיִת": "מקום מגורים", "בֵּית": "צורת הנסמך של בַּיִת"},
+    "בערב": {"בָּעֶרֶב": "בשעות הערב", "בְּעֶרֶב": "בערב של יום או אירוע מסוים"},
+    "בחול": {"בַּחוֹל": "בחול מסוים או ביום חול", "בְּחוֹל": "בחול שאינו מיודע"},
+    "בעיר": {"בָּעִיר": "בעיר מסוימת", "בְּעִיר": "בעיר שאינה מיודעת"},
+    "הדף": {"הַדַּף": "עמוד או גיליון נייר מיודע", "הָדַף": "דחק לאחור"},
+    "לגנה": {"לַגִּנָּה": "אל הגינה", "לְגִנָּה": "אל גינה", "לְגִנָּהּ": "אל הגינה שלה"},
 }
+PREDICATE_FORMS = {
+    "יפה": ("יָפֶה", "יָפָה"),
+    "רוצה": ("רוֹצֶה", "רוֹצָה"),
+    "שותה": ("שׁוֹתֶה", "שׁוֹתָה"),
+    "קונה": ("קוֹנֶה", "קוֹנָה"),
+    "בוכה": ("בּוֹכֶה", "בּוֹכָה"),
+    "עושה": ("עוֹשֶׂה", "עוֹשָׂה"),
+}
+SUBJECTS = {"את": 1, "היא": 1, "אתה": 0, "הוא": 0}
+PREDICATE_PATTERN = re.compile(
+    r"(?:^|[.!?׃;])\s*(?P<subject>את|אתה|היא|הוא)\s+(?:הכי\s+)?(?P<predicate>"
+    + "|".join(PREDICATE_FORMS) + r")(?![א-ת])"
+)
 # Common spellings reviewed against the number tables and standard pointed forms.
 REVIEWED_READINGS = {
     "את": {
@@ -44,6 +62,8 @@ REVIEWED_READINGS = {
         "אֵת": "כלי חפירה או מילית מושא במקרא",
         "אַתְּ": "כינוי גוף שני בנקבה יחידה",
     },
+    "הכי": {"הֲכִי": "ביותר או מילת שאלה במקרא", "הָכִי": "כך בארמית"},
+    "ללכת": {"לָלֶכֶת": "שם הפועל של הָלַךְ"},
     "אפס": {"אֶפֶס": "המספר 0", "אָפַס": "תַּם או אזל", "אִפֵּס": "החזיר לערך אפס"},
     "אחת": {"אַחַת": "המספר 1 בנקבה"},
     "שתים": {"שְׁתַּיִם": "המספר 2 בנקבה", "שְׁתֵּים": "הצורה שבצירוף שתים עשרה"},
@@ -101,6 +121,18 @@ def plain(text):
 
 def form_key(text):
     return unicodedata.normalize("NFC", text).replace("\u05c7", "\u05b8")
+
+
+def predicate_suggestions(text):
+    """Use agreement in short clauses with an explicit personal pronoun."""
+    suggestions = {}
+    for clause in PREDICATE_PATTERN.finditer(text):
+        subject = clause["subject"]
+        chosen = PREDICATE_FORMS[clause["predicate"]][SUBJECTS[subject]]
+        suggestions[clause.start("predicate")] = chosen
+        if subject == "את":
+            suggestions[clause.start("subject")] = "אַתְּ"
+    return suggestions
 
 
 def after_shva_signature(form):
@@ -169,20 +201,27 @@ def readings(text):
     if not words:
         raise ValueError("Enter at least one Hebrew word.")
     unpointed = plain(text)
-    predicted = LETTER.findall(predict(unpointed, model=model_session(), maxlen=len(unpointed) + 1))
+    model_input = unpointed
+    if len(words) > 1 and not unpointed.rstrip(" \t\r\n\"׳״”’)]").endswith((".", "!", "?", "׃", "…")):
+        # The model can confuse a selection boundary with the middle of a word.
+        model_input = unpointed.rstrip() + "."
+    predicted = LETTER.findall(predict(model_input, model=model_session(), maxlen=len(model_input) + 1))
     original = LETTER.findall(unpointed)
     if [item[0] for item in predicted] != original:
         raise ValueError("The vocalizer could not align the result. Try a shorter selection.")
     letters = iter(predicted)
     result = []
     dictionary = lexicon()
+    suggestions = predicate_suggestions(text)
     for index, word in enumerate(words):
         model = LETTER.sub(lambda _match: next(letters), plain(word))
+        model = suggestions.get(spans[index].start(), model)
         if re.search(rf"[{MARKS}{ACCENTS}]", word):
             options = [(word, "")]
             preferred = 0
-        elif word in REVIEWED_READINGS:
-            candidates = REVIEWED_READINGS[word]
+        elif word in REVIEWED_READINGS or word in PREDICATE_FORMS:
+            candidates = (REVIEWED_READINGS[word] if word in REVIEWED_READINGS else
+                          dict(zip(PREDICATE_FORMS[word], ("צורת הזכר", "צורת הנקבה"), strict=True)))
             options = list(candidates.items())
             following = ""
             if index + 1 < len(words):

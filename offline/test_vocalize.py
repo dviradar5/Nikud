@@ -6,6 +6,24 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_superlative_suggests_agreement_and_keeps_alternatives(self):
+        words = readings("את הכי יפה")
+        picked = [form_key(word["readings"][word["preferred"]]["text"]) for word in words]
+        self.assertEqual(picked, [form_key(item) for item in ("אַתְּ", "הֲכִי", "יָפָה")])
+        self.assertEqual({form_key(item["text"]) for item in words[0]["readings"]},
+                         {form_key(item) for item in ("אַתְּ", "אֶת", "אֵת")})
+        self.assertEqual({form_key(item["text"]) for item in words[2]["readings"]},
+                         {form_key(item) for item in ("יָפָה", "יָפֶה")})
+
+    def test_clause_rule_leaves_medial_direct_object_marker(self):
+        word = readings("אני אוהב את הכי יפה")[2]
+        self.assertEqual(form_key(word["readings"][word["preferred"]]["text"]), form_key("אֶת"))
+
+    def test_sentence_boundary_preserves_the_text_without_a_period(self):
+        words = for_browser("היא שרה שיר")
+        self.assertEqual([word["original"] for word in words], ["היא", "שרה", "שיר"])
+        self.assertEqual(form_key(words[-1]["choices"][words[-1]["selected"]]["text"]), form_key("שִׁיר"))
+
     def test_et_offers_three_distinct_readings(self):
         result = readings("את")[0]
         self.assertEqual(result["preferred"], -1)
