@@ -40,6 +40,13 @@ class VocalizeTests(unittest.TestCase):
         self.assertEqual(form_key(put["readings"][put["preferred"]]["text"]), form_key("שָׂם"))
         self.assertEqual(form_key(there["readings"][there["preferred"]]["text"]), form_key("שָׁם"))
 
+    def test_yesterday_has_no_final_sheva_with_or_without_punctuation(self):
+        for text in ("אתמול", "קראתי ספר אתמול", "קראתי ספר אתמול."):
+            with self.subTest(text=text):
+                word = readings(text)[-1]
+                self.assertEqual(word["preferred"], 0)
+                self.assertEqual([form["text"] for form in word["readings"]], ["אֶתְמוֹל"])
+
     def test_browser_utf16_offsets_and_spacing(self):
         source = "📚 קראתי  ספר!\nABC 42"
         words = for_browser(source)

@@ -131,6 +131,9 @@ def readings(text):
         if re.search(rf"[{MARKS}{ACCENTS}]", word):
             options = [(word, "")]
             preferred = 0
+        elif word == "אתמול":
+            options = [("אֶתְמוֹל", "היום שלפני היום הנוכחי")]
+            preferred = 0
         else:
             candidates = dictionary.get(word, {}).copy()
             model = restore_lexical_dagesh(model, candidates)
