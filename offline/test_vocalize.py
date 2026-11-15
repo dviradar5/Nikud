@@ -6,6 +6,18 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_full_spelling_of_isha_keeps_both_readings_in_isolation(self):
+        word = readings("אישה")[0]
+        self.assertEqual(word["preferred"], -1)
+        self.assertEqual({form_key(option["text"]) for option in word["readings"]},
+                         {form_key("אִישָּׁה"), form_key("אִישָׁהּ")})
+        self.assertEqual(len(word["readings"]), 3)
+
+    def test_isha_achat_suggests_woman_and_keeps_other_readings(self):
+        word = readings("אישה אחת")[0]
+        self.assertEqual(form_key(word["readings"][word["preferred"]]["text"]),
+                         form_key("אִישָּׁה"))
+        self.assertEqual(len(word["readings"]), 3)
     def test_homographs_keep_separate_meanings_in_the_chooser(self):
         word = readings("קורה")[0]
         self.assertEqual(word["preferred"], -1)
