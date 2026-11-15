@@ -1,0 +1,34 @@
+name: Report a word mistake
+description: Report incorrect nikud, a missing reading, or an inaccurate popup definition.
+title: "[Word] "
+assignees:
+  - dviradar5
+body:
+  - type: markdown
+    attributes:
+      value: This report will be public. If context matters, use a sample sentence you are comfortable sharing.
+  - type: input
+    id: input
+    attributes:
+      label: Hebrew word or sample sentence
+      placeholder: קראתי ספר אתמול.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What did Nikud show?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What is the correct reading or definition?
+      description: Include the intended meaning or a reference if it helps explain the correction.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Nikud version
+      placeholder: "For example, 0.2.1"

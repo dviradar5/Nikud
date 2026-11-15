@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
@@ -7,10 +8,25 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyInformationalVersion("0.2.0")]
+[assembly: AssemblyInformationalVersion("0.2.1")]
 
 namespace Nikud
 {
+    internal static class IssueReports
+    {
+        internal static void Open(bool wordMistake)
+        {
+            var template = wordMistake ? "word.yml" : "bug.yml";
+            var url = "https://github.com/dviradar5/Nikud/issues/new?template=" + template
+                + "&version=" + Uri.EscapeDataString(Application.ProductVersion);
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                MessageBox.Show("Could not open your browser. Visit github.com/dviradar5/Nikud/issues to file a report.", "Nikud");
+            }
+        }
+    }
+
     internal static class Program
     {
         [STAThread]
@@ -48,6 +64,10 @@ namespace Nikud
             settings = new Settings(hotkey) { Icon = artwork };
             menu.Items.Add("Settings…", null, (sender, args) => OpenSettings());
             menu.Items.Add("Open text editor…", null, (sender, args) => OpenEditor());
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Report a bug…", null, (sender, args) => IssueReports.Open(false));
+            menu.Items.Add("Report a word mistake…", null, (sender, args) => IssueReports.Open(true));
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Exit", null, (sender, args) => { exiting = true; ExitThread(); });
             icon = new NotifyIcon { Icon = artwork, Text = "Nikud", ContextMenuStrip = menu, Visible = true };
             icon.DoubleClick += (sender, args) => OpenSettings();

@@ -29,7 +29,7 @@ namespace Nikud
             StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = false;
             MinimizeBox = false;
-            ClientSize = new Size(430, 285);
+            ClientSize = new Size(430, 315);
 
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(22, 17, 22, 14), ColumnCount = 3 };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 114));
@@ -75,6 +75,14 @@ namespace Nikud
             var test = new Button { Text = "Open text editor…", AutoSize = true, Margin = new Padding(3, 8, 3, 3) };
             test.Click += (sender, args) => { if (OpenEditor != null) OpenEditor(); };
             AddFullRow(layout, test, 7);
+            var reports = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
+            var bug = new Button { Text = "Report a bug…", AutoSize = true };
+            var word = new Button { Text = "Report a word mistake…", AutoSize = true };
+            bug.Click += (sender, args) => IssueReports.Open(false);
+            word.Click += (sender, args) => IssueReports.Open(true);
+            reports.Controls.Add(bug);
+            reports.Controls.Add(word);
+            AddFullRow(layout, reports, 8);
             Controls.Add(layout);
 
             shortcut.KeyDown += CaptureShortcut;

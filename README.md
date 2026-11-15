@@ -16,17 +16,13 @@ The shortcut uses standard Windows copy and paste. Keep the selection active whi
 
 ## macOS
 
-Starting from a Git clone or GitHub's **Code → Download ZIP**? See [macos/](macos/) for the source launcher. The release ZIP can be run with the commands below.
-
 Download **Nikud-Offline-macOS.zip**, extract it, and install [Python 3.12](https://www.python.org/downloads/). In Terminal, change to the extracted `nikud` folder and run:
 
 ```sh
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r offline/requirements.txt
-.venv/bin/python offline/app.py
+bash macos/start.sh
 ```
 
-The first two commands set up the engine once and require an internet connection. After that, run only the last command. Nikud opens a browser tab on your computer. Paste the Hebrew text, select **Add nikud**, then **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it.
+The first run installs dependencies and requires an internet connection. Nikud opens a local browser tab. Paste the Hebrew text, select **Add nikud**, then **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it. The same launcher works from a Git clone. [macOS setup guide](macos/)
 
 ## Readings and spelling
 
@@ -37,6 +33,13 @@ Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפּ
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
 
 Nikud runs locally and requires no API key or account.
+
+## Report a problem
+
+On Windows, use **Report a bug** or **Report a word mistake** in Settings or in the tray menu. On macOS, both links are below the editor. Reports are public GitHub issues assigned to the maintainer. Use a sample sentence if context matters. Nikud leaves the text fields empty so you can choose what to share.
+
+- For problems with launch, the shortcut, or the interface, include the app and steps to reproduce. [Report a bug](https://github.com/dviradar5/Nikud/issues/new?template=bug.yml)
+- For wrong nikud, missing readings, or inaccurate definitions, include what Nikud showed and what you expected. [Report a word mistake](https://github.com/dviradar5/Nikud/issues/new?template=word.yml)
 
 ## Build and test
 
@@ -56,4 +59,4 @@ Place the resulting `dist/NikudEngine` folder beside `Nikud.exe`.
 - Nikud bundles pointed word forms, lemmas, and grammatical tags from UniMorph Hebrew. The dataset credits Wiktionary contributors as its source and Omer Goldman as its annotator. UniMorph distributes the dataset under CC BY-SA 3.0. Short glosses for common ambiguous words are written for Nikud. [UniMorph Hebrew](https://github.com/unimorph/heb#hebrew-heb) · [Wiktionary](https://www.wiktionary.org/) · [Dataset license](https://creativecommons.org/licenses/by-sa/3.0/)
 - [Shift Happens](https://github.com/Elaad-Adar/shift-happens) by Elaad Adar inspired the tray and keyboard shortcut workflow.
 
-See [third-party attribution](offline/ATTRIBUTION.md) for data sources and license details. Problems and suggestions are welcome in [GitHub Issues](https://github.com/dviradar5/Nikud/issues).
+See [third-party attribution](offline/ATTRIBUTION.md) for data sources and license details.
