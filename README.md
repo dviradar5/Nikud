@@ -24,7 +24,15 @@ If every Hebrew word in the selection already has nikud, Nikud removes the marks
 2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. Click **Vocalize selection** to assign an **F-key** such as **F2**, tap **Ctrl** twice, or press a combination with **Ctrl**, **Alt**, or **Win**. Windows can reserve some combinations, and Nikud uses **Ctrl+C** and **Ctrl+V** internally.
 3. Select an editable word or sentence and press the shortcut to add or remove nikud. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
 
-**Review new nikud before applying** is enabled by default. In the Windows preview, choose **Edit nikud…**, place the cursor after a Hebrew letter, and click a mark in the toolbar. **×** removes the nikud from that letter. On macOS, use **Edit nikud…** beside **Copy result** to edit the marks with your keyboard.
+### Edit niqqud with the Windows toolbar
+
+**Review new nikud before applying** is enabled by default. To edit the suggested marks:
+
+1. Click **Edit nikud…** in the preview to show the toolbar.
+2. Place the cursor immediately after the Hebrew letter you want to change, then click a mark. A new vowel replaces the old vowel and keeps compatible marks. Use **×** to clear the niqqud from that letter.
+3. Click **Apply** to keep your edits. Choose **Use suggestions** to return to the suggested readings.
+
+The toolbar enables letter-specific marks where they apply. For example, the **שׁ** and **שׂ** dots are available on **ש**, and shuruq **וּ** is available on **ו**.
 
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
@@ -41,6 +49,8 @@ bash macos/start.sh
 ```
 
 The first run installs dependencies and requires an internet connection. Nikud opens a local browser tab. Paste the Hebrew text, select **Add or remove nikud**, then select **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it. The same launcher works from a Git clone. [macOS setup guide](macos/)
+
+Use **Edit nikud…** beside **Copy result** to adjust the marks with your keyboard.
 
 ## Add, remove, or redo nikud
 
@@ -87,5 +97,6 @@ Place the resulting `dist/NikudEngine` folder beside `Nikud.exe`.
 - [Nakdimon](https://github.com/elazarg/nakdimon) by Elazar Gershuni and Yuval Pinter provides the Hebrew diacritization model. [Research paper](https://aclanthology.org/2022.findings-naacl.75/)
 - Nikud bundles pointed word forms, lemmas, and grammatical tags from UniMorph Hebrew. The dataset credits Wiktionary contributors as its source and Omer Goldman as its annotator. UniMorph distributes the dataset under CC BY-SA 3.0. Short glosses for common ambiguous words are written for Nikud. [UniMorph Hebrew](https://github.com/unimorph/heb#hebrew-heb) · [Wiktionary](https://www.wiktionary.org/) · [Dataset license](https://creativecommons.org/licenses/by-sa/3.0/)
 - [Shift Happens](https://github.com/Elaad-Adar/shift-happens) by Elaad Adar inspired the tray and keyboard shortcut workflow.
+- **ChatGPT** by OpenAI assisted with developing, testing, and documenting Nikud.
 
 See [third-party attribution](offline/ATTRIBUTION.md) for data sources and license details.
