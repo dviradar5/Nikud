@@ -24,16 +24,6 @@ If every Hebrew word in the selection already has nikud, Nikud removes the marks
 2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. Click **Vocalize selection** to assign an **F-key** such as **F2**, tap **Ctrl** twice, or press a combination with **Ctrl**, **Alt**, or **Win**. Windows can reserve some combinations, and Nikud uses **Ctrl+C** and **Ctrl+V** internally.
 3. Select an editable word or sentence and press the shortcut to add or remove nikud. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
 
-### Edit niqqud with the Windows toolbar
-
-**Review new nikud before applying** is enabled by default. To edit the suggested marks:
-
-1. Click **Edit nikud…** in the preview to show the toolbar.
-2. Place the cursor immediately after the Hebrew letter you want to change, then click a mark. A new vowel replaces the old vowel and keeps compatible marks. Use **×** to clear the niqqud from that letter.
-3. Click **Apply** to keep your edits. Choose **Use suggestions** to return to the suggested readings.
-
-The toolbar enables letter-specific marks where they apply. For example, the **שׁ** and **שׂ** dots are available on **ש**, and shuruq **וּ** is available on **ו**.
-
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
 The shortcut uses standard Windows copy and paste. Keep the selection active while Nikud works. Some apps block simulated keystrokes, particularly when they run as administrator. If the shortcut fails, check the last status in Settings and try the built-in editor with `ספר`.
@@ -50,15 +40,21 @@ bash macos/start.sh
 
 The first run installs dependencies and requires an internet connection. Nikud opens a local browser tab. Paste the Hebrew text, select **Add or remove nikud**, then select **Copy result**. Keep Terminal open while you use it. Press **Ctrl+C** there to stop it. The same launcher works from a Git clone. [macOS setup guide](macos/)
 
-Use **Edit nikud…** beside **Copy result** to adjust the marks with your keyboard.
-
-## Add, remove, or redo nikud
+## Add, remove, edit, or redo nikud
 
 - **Unpointed text** gets nikud.
 - **Pointed text** loses its nikud when every Hebrew word in the selection has marks. Spaces, punctuation, and surrounding non-Hebrew text are preserved.
 - **Mixed text** gets nikud on the unpointed words and keeps existing marks on the others.
 
 To redo a single word on Windows, select it and press the shortcut once to remove its nikud. Select the resulting word again and press the same shortcut to add nikud or choose a reading. On macOS, paste the unpointed result back into the input box before running it again.
+
+### Edit individual marks
+
+**Windows.** **Review new nikud before applying** is enabled by default. In the preview, click **Edit nikud…** to open the toolbar. Place the cursor immediately after a Hebrew letter and choose a mark. A new vowel replaces the old one and keeps compatible marks. Use **×** to clear the letter’s niqqud. The shin and sin dots are available on **ש**, and shuruq **וּ** is available on **ו**. Click **Apply** to keep your edits.
+
+**macOS.** Click **Edit nikud…** beside **Copy result**, then adjust the marks with your keyboard. Click **Copy result** when you’re done.
+
+On either platform, choose **Use suggestions** to return to the suggested readings.
 
 ## Readings and spelling
 
