@@ -442,7 +442,7 @@ namespace Nikud
             Add('\u05b7', "פתח");
             Add('\u05b8', "קמץ");
             Add('\u05c7', "קמץ קטן");
-            Add('\u05b9', "חולם");
+            Add('\u05b9', "חולם רגיל (חולם מלא על ו)");
             Add('\u05ba', "חולם חסר על ו");
             Add('\u05bb', "קובוץ");
             Add('\u05bc', "דגש או מפיק בה״א");
@@ -461,12 +461,15 @@ namespace Nikud
 
         private void Add(char mark, string name)
         {
+            string baseLetter = DotIconBase(mark);
             var button = new Button
             {
-                Text = mark == Clear ? "×" : mark == Shuruq ? "וּ" : "\u25cc" + mark,
+                Text = baseLetter != null ? "" : mark == Clear ? "×" : mark == Shuruq ? "וּ" : "\u25cc" + mark,
                 AccessibleName = name, Font = markFont, Size = new Size(33, 29),
                 Margin = new Padding(2), Enabled = false, RightToLeft = RightToLeft.No,
             };
+            if (baseLetter != null)
+                button.Paint += (sender, args) => DrawDotIcon(button, args.Graphics, baseLetter, mark);
             tips.SetToolTip(button, name);
             button.Click += (sender, args) =>
             {
@@ -483,6 +486,28 @@ namespace Nikud
             };
             buttons.Add(mark, button);
             Controls.Add(button);
+        }
+
+        private static string DotIconBase(char mark)
+        {
+            if (mark == '\u05b9' || mark == '\u05ba') return "ו";
+            if (mark == '\u05c1' || mark == '\u05c2') return "ש";
+            return null;
+        }
+
+        private static void DrawDotIcon(Button button, Graphics graphics, string letter, char mark)
+        {
+            // Draw the dot independently so the preview does not depend on Hebrew
+            // combining-mark placement or clipping in the Windows button renderer.
+            int height = button.ClientSize.Height;
+            int width = button.ClientSize.Width;
+            int dotSize = Math.Max(3, (int)Math.Round(height * .12));
+            double x = mark == '\u05b9' ? .50 : mark == '\u05c1' ? .69 : .31;
+            Color color = button.Enabled ? SystemColors.ControlText : SystemColors.GrayText;
+            TextRenderer.DrawText(graphics, letter, button.Font, new Rectangle(0, dotSize, width, height - dotSize),
+                color, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            using (var brush = new SolidBrush(color))
+                graphics.FillEllipse(brush, (int)Math.Round(width * x) - dotSize / 2, height / 5, dotSize, dotSize);
         }
 
         private void RefreshButtons()
