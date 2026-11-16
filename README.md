@@ -52,7 +52,7 @@ To redo a single word on Windows, select it and press the shortcut once to remov
 
 **Windows.** **Review new nikud before applying** is enabled by default. In the preview, click **Edit nikud…** to open the toolbar. Place the cursor immediately after a Hebrew letter and choose a mark. A new vowel replaces the old one and keeps compatible marks. Use **×** to clear the letter’s niqqud. The shin and sin dots are available on **ש**, and shuruq **וּ** is available on **ו**. Click **Apply** to keep your edits.
 
-**macOS.** Click **Edit nikud…** beside **Copy result**, then adjust the marks with your keyboard. Click **Copy result** when you’re done.
+**macOS.** Click **Edit nikud…** beside **Copy result** to open the toolbar. Place the cursor immediately after the letter you want to change, then click a mark or use **×** to clear it. Click **Copy result** when you’re done.
 
 On either platform, choose **Use suggestions** to return to the suggested readings.
 

@@ -27,6 +27,13 @@
   #review { margin-top: 14px; }
   #options { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
   #options button[aria-pressed="true"] { background: #174936; color: white; }
+  #marks:not([hidden]) { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 12px; }
+  #marks button { position: relative; padding: 4px; width: 34px; height: 36px; font: 21px Arial, sans-serif; }
+  #marks .dot { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: currentColor; top: 6px; }
+  #marks .left { left: 9px; }
+  #marks .right { right: 9px; }
+  #marks .center { left: calc(50% - 1.5px); }
+  #marks .middle { top: 55%; }
   #status { min-height: 1.5em; margin-top: 14px; }
   @media (max-width: 680px) {
     main { padding: 24px 14px; }
@@ -50,6 +57,7 @@
     <section class="panel">
       <h2>Result</h2>
       <div id="result" lang="he" dir="rtl" aria-label="Processed Hebrew text"></div>
+      <div id="marks" role="group" aria-label="Niqqud marks" lang="he" dir="rtl" hidden></div>
       <textarea id="manual" lang="he" dir="rtl" aria-label="Edit the suggested nikud" hidden></textarea>
       <button id="copy" disabled>Copy result</button>
       <button id="edit" disabled>Edit nikud…</button>
@@ -75,7 +83,88 @@
   const copy = byId('copy');
   const edit = byId('edit');
   const manual = byId('manual');
+  const toolbar = byId('marks');
   const stripNikud = text => text.normalize('NFD').replace(/[\u05b0-\u05bd\u05bf\u05c1\u05c2\u05c7]/g, '').normalize();
+  const hebrewMark = /[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/;
+  const markGroup = mark => {
+    if (/[\u05b0-\u05bb\u05c7]/.test(mark)) return 1;
+    if (/[\u05c1\u05c2]/.test(mark)) return 2;
+    if (/[\u05bc\u05bf]/.test(mark)) return 3;
+    return mark === '\u05bd' ? 4 : 0;
+  };
+
+  function letterBeforeCursor() {
+    const text = manual.value;
+    let end = manual.selectionStart;
+    if (end !== manual.selectionEnd) return null;
+    let start = end - 1;
+    while (start >= 0 && hebrewMark.test(text[start])) start--;
+    if (start < 0 || !/[א-ת]/.test(text[start])) return null;
+    while (end < text.length && hebrewMark.test(text[end])) end++;
+    return {start, end, letter: text[start]};
+  }
+
+  const marks = [
+    ['\u05ba', 'חולם חסר', '◌', 'left'], ['\u05b9', 'חולם מלא', 'ו', 'center'],
+    ['shuruk', 'שורוק', 'ו', 'left middle'],
+    ['\u05b0', 'שווא'], ['\u05b1', 'חטף סגול'], ['\u05b2', 'חטף פתח'],
+    ['\u05b3', 'חטף קמץ'], ['\u05b4', 'חיריק'], ['\u05b5', 'צירי'],
+    ['\u05b6', 'סגול'], ['\u05b7', 'פתח'], ['\u05b8', 'קמץ'], ['\u05c7', 'קמץ קטן'],
+    ['\u05bb', 'קובוץ'], ['\u05bc', 'דגש או מפיק'],
+    ['\u05c1', 'נקודת שי״ן ימנית', 'ש', 'right'], ['\u05c2', 'נקודת שי״ן שמאלית', 'ש', 'left'],
+    ['\u05bd', 'מתג'], ['\u05bf', 'רפה'], ['', 'הסר ניקוד מהאות', '×'],
+  ];
+
+  function canMark(letter, mark) {
+    if (mark === 'shuruk' || mark === '\u05b9') return letter === 'ו';
+    if (mark === '\u05c1' || mark === '\u05c2') return letter === 'ש';
+    return mark !== '\u05bc' || !'אחער'.includes(letter);
+  }
+
+  function applyMark(cluster, mark) {
+    const letter = cluster[0];
+    const holamOnVav = letter === 'ו' && (mark === '\u05b9' || mark === '\u05ba');
+    const inserted = mark === 'shuruk' ? '\u05bc'
+      : mark === '\u05ba' && letter !== 'ו' ? '\u05b9' : mark;
+    const kept = Array.from(cluster.slice(1)).filter(existing => {
+      const group = markGroup(existing);
+      if (!group) return true;
+      if (mark === 'shuruk') return group !== 1 && group !== 3;
+      return inserted && group !== markGroup(inserted) && !(holamOnVav && existing === '\u05bc');
+    });
+    return (letter + kept.join('') + inserted).normalize();
+  }
+
+  function refreshMarks() {
+    const target = letterBeforeCursor();
+    for (const button of toolbar.children)
+      button.disabled = !target || !canMark(target.letter, button.dataset.mark);
+  }
+
+  for (const [mark, name, glyph, dot] of marks) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.mark = mark;
+    button.textContent = glyph ?? '◌' + mark;
+    button.title = name;
+    button.setAttribute('aria-label', name);
+    if (dot) {
+      const point = document.createElement('span');
+      point.className = 'dot ' + dot;
+      button.append(point);
+    }
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.onclick = () => {
+      const target = letterBeforeCursor();
+      if (!target || !canMark(target.letter, mark)) return;
+      const pointed = applyMark(manual.value.slice(target.start, target.end), mark);
+      manual.setRangeText(pointed, target.start, target.end, 'end');
+      manual.focus();
+      validateManual();
+      refreshMarks();
+    };
+    toolbar.append(button);
+  }
   let words = [];
   let snapshot = '';
   let active = -1;
@@ -93,6 +182,7 @@
 
   function render() {
     manual.hidden = true;
+    toolbar.hidden = true;
     result.hidden = false;
     edit.textContent = 'Edit nikud…';
     edit.disabled = !words.length;
@@ -250,7 +340,15 @@
     copy.disabled = stripNikud(manual.value) !== stripNikud(snapshot);
     status.textContent = copy.disabled ? 'Keep the original letters, spacing, and punctuation.' : 'Review your edits, then copy the result.';
   }
-  manual.addEventListener('input', validateManual);
+  manual.addEventListener('input', () => {
+    validateManual();
+    refreshMarks();
+  });
+  for (const event of ['click', 'keyup', 'select', 'focus'])
+    manual.addEventListener(event, refreshMarks);
+  document.addEventListener('selectionchange', () => {
+    if (!manual.hidden && document.activeElement === manual) refreshMarks();
+  });
   edit.onclick = () => {
     if (!manual.hidden) {
       render();
@@ -260,6 +358,7 @@
     manual.value = result.textContent;
     result.hidden = true;
     manual.hidden = false;
+    toolbar.hidden = false;
     edit.textContent = 'Use suggestions';
     showChoices(-1);
     validateManual();
