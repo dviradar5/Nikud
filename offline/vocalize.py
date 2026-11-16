@@ -13,6 +13,7 @@ from nakdimon.config import MAIN_MODEL
 from nakdimon.predict import predict
 
 from biblical_forms import FORMS as BIBLICAL_FORMS
+from compounds import COMPOUNDS
 from vocabulary import GLOSSES
 
 
@@ -22,6 +23,7 @@ ACCENTS = r"\u0591-\u05af\u05c4\u05c5"
 WORD = re.compile(rf"[א-ת](?:[א-ת{MARKS}{ACCENTS}]|['\"׳״](?=[א-ת]))*")
 LETTER = re.compile(rf"[א-ת][{MARKS}]*")
 REMOVE_MARKS = re.compile(rf"[{MARKS}{ACCENTS}]")
+COMPOUND_GAP = re.compile(r"(?:[^\S\r\n]+|[^\S\r\n]*[־-][^\S\r\n]*)")
 MEANINGS = {
     "אשה": {"אִשָּׁה": "אדם בוגר ממין נקבה"},
     "ספר": {
@@ -295,6 +297,15 @@ def readings(text):
             "preferred": preferred,
             "readings": [{"text": form, "meaning": meaning} for form, meaning in options],
         })
+    previous_end = -1
+    for index, (left, right) in enumerate(zip(spans, spans[1:])):
+        if index == previous_end:
+            continue
+        entry = COMPOUNDS.get((left.group(), right.group()))
+        if entry and COMPOUND_GAP.fullmatch(text[left.end():right.start()]):
+            phrase, meaning = entry
+            result[index]["compound"] = {"parts": phrase.split(), "meaning": meaning}
+            previous_end = index + 1
     return result
 
 

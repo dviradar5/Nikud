@@ -23,6 +23,14 @@ namespace Nikud
         internal string Original;
         internal List<Reading> Readings;
         internal int Selected;
+        internal Compound Compound;
+    }
+
+    internal sealed class Compound
+    {
+        internal string[] Parts;
+        internal string Meaning;
+        internal bool Selected = true;
     }
 
     internal static class Engine
@@ -112,6 +120,14 @@ namespace Nikud
                 }
                 if (word.Readings.Count == 1) word.Selected = 0;
                 else if (spans.Length > 1) word.Selected = word.Readings.IndexOf(preferredReading);
+                object compound;
+                if (i + 1 < spans.Length && data[i].TryGetValue("compound", out compound))
+                {
+                    var entry = (Dictionary<string, object>)compound;
+                    var parts = ((IEnumerable)entry["parts"]).Cast<string>().Select(part => part.Normalize()).ToArray();
+                    if (parts.Length == 2 && Strip(parts[0]) == Strip(span.Value) && Strip(parts[1]) == Strip(spans[i + 1].Value))
+                        word.Compound = new Compound { Parts = parts, Meaning = (string)entry["meaning"] };
+                }
                 words.Add(word);
             }
             return words;
@@ -128,8 +144,12 @@ namespace Nikud
             for (int i = words.Count - 1; i >= 0; i--)
             {
                 var word = words[i];
-                if (word.Selected >= 0)
-                    output.Remove(word.Start, word.Original.Length).Insert(word.Start, word.Readings[word.Selected].Text);
+                string pointed = word.Selected >= 0 ? word.Readings[word.Selected].Text : word.Original;
+                if (word.Compound != null && word.Compound.Selected)
+                    pointed = word.Compound.Parts[0];
+                else if (i > 0 && words[i - 1].Compound != null && words[i - 1].Compound.Selected)
+                    pointed = words[i - 1].Compound.Parts[1];
+                output.Remove(word.Start, word.Original.Length).Insert(word.Start, pointed);
             }
             return output.ToString();
         }

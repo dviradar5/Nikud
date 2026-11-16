@@ -202,7 +202,7 @@ namespace Nikud
                 {
                     var words = await Engine.VocalizeAsync(text);
                     if (IsDisposed) return;
-                    if (words.Any(word => word.Readings.Count > 1))
+                    if (words.Any(word => word.Readings.Count > 1 || word.Compound != null))
                         using (var dialog = new ReadingsDialog(text, words, artwork))
                             if (dialog.ShowDialog(this) != DialogResult.OK) { status.Text = "Cancelled."; return; }
                     output.Text = Engine.Render(text, words);
@@ -231,12 +231,12 @@ namespace Nikud
 
     internal sealed class ReadingsDialog : Form
     {
-        private readonly List<ComboBox> choices = new List<ComboBox>();
+        private readonly Dictionary<Word, ComboBox> choices = new Dictionary<Word, ComboBox>();
         private readonly Button apply = new Button { Text = "Apply", AutoSize = true };
 
-        internal ReadingsDialog(string source, List<Word> words, Icon artwork)
+        internal ReadingsDialog(string source, List<Word> words, Icon artwork, IntPtr target = default(IntPtr))
         {
-            Text = "Nikud — choose a reading";
+            Text = "Nikud " + Application.ProductVersion + " — choose a reading";
             Icon = artwork;
             Font = SystemFonts.MessageBoxFont;
             AutoScaleMode = AutoScaleMode.Dpi;
@@ -244,18 +244,57 @@ namespace Nikud
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
+            if (target != IntPtr.Zero)
+            {
+                TopMost = true;
+                StartPosition = FormStartPosition.Manual;
+            }
             var ambiguous = words.Where(word => word.Readings.Count > 1).ToList();
-            ClientSize = new Size(460, Math.Min(435, 120 + ambiguous.Count * 65));
+            ClientSize = new Size(460, Math.Min(435, 120 + (ambiguous.Count + words.Count(word => word.Compound != null)) * 65));
+            if (target != IntPtr.Zero)
+            {
+                var area = Screen.FromHandle(target).WorkingArea;
+                Location = new Point(area.Left + Math.Max(0, (area.Width - Width) / 2),
+                                     area.Top + Math.Max(0, (area.Height - Height) / 2));
+            }
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 3 };
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.Controls.Add(new Label { Text = "Choose the intended reading for each word.", AutoSize = true }, 0, 0);
+            layout.Controls.Add(new Label { Text = "Choose a phrase or review individual word readings.", AutoSize = true }, 0, 0);
             var list = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
             var rows = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, ColumnCount = 1 };
             rows.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            foreach (var word in ambiguous)
+            for (int i = 0; i < words.Count; i++)
             {
+                var word = words[i];
+                if (word.Compound != null)
+                {
+                    var next = words[i + 1];
+                    var original = source.Substring(word.Start, next.Start + next.Original.Length - word.Start);
+                    rows.Controls.Add(new Label { Text = original + "  (צירוף)", RightToLeft = RightToLeft.Yes, AutoSize = true, Dock = DockStyle.Fill });
+                    var phrase = new ComboBox
+                    {
+                        AccessibleName = "Phrase reading for " + original, RightToLeft = RightToLeft.Yes,
+                        Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList,
+                        Font = new Font("Segoe UI", 11),
+                    };
+                    phrase.Items.Add(string.Join(" ", word.Compound.Parts) + " — " + word.Compound.Meaning);
+                    phrase.Items.Add("בחירת ניקוד לכל מילה בנפרד");
+                    phrase.SelectedIndex = 0;
+                    phrase.SelectedIndexChanged += (sender, args) =>
+                    {
+                        word.Compound.Selected = phrase.SelectedIndex == 0;
+                        foreach (var member in new[] { word, next })
+                        {
+                            ComboBox memberChoice;
+                            if (choices.TryGetValue(member, out memberChoice)) memberChoice.Enabled = !word.Compound.Selected;
+                        }
+                        UpdateApply();
+                    };
+                    rows.Controls.Add(phrase);
+                }
+                if (word.Readings.Count <= 1) continue;
                 var start = Math.Max(0, word.Start - 17);
                 var end = Math.Min(source.Length, word.Start + word.Original.Length + 17);
                 var context = source.Substring(start, end - start).Replace('\r', ' ').Replace('\n', ' ');
@@ -269,7 +308,8 @@ namespace Nikud
                     select.Items.Add(string.IsNullOrEmpty(reading.Meaning) ? reading.Text : reading.Text + " — " + reading.Meaning);
                 select.SelectedIndex = word.Selected;
                 select.SelectedIndexChanged += (sender, args) => UpdateApply();
-                choices.Add(select);
+                select.Enabled = word.Compound == null && (i == 0 || words[i - 1].Compound == null);
+                choices.Add(word, select);
                 rows.Controls.Add(select);
             }
             list.Controls.Add(rows);
@@ -278,7 +318,7 @@ namespace Nikud
             var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
             apply.Click += (sender, args) =>
             {
-                for (int i = 0; i < choices.Count; i++) ambiguous[i].Selected = choices[i].SelectedIndex;
+                foreach (var choice in choices) choice.Key.Selected = choice.Value.SelectedIndex;
                 DialogResult = DialogResult.OK;
             };
             buttons.Controls.Add(cancel);
@@ -290,6 +330,17 @@ namespace Nikud
             UpdateApply();
         }
 
-        private void UpdateApply() { apply.Enabled = choices.All(choice => choice.SelectedIndex >= 0); }
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            if (TopMost) BeginInvoke(new Action(() =>
+            {
+                if (!Visible) return;
+                BringToFront();
+                Activate();
+            }));
+        }
+
+        private void UpdateApply() { apply.Enabled = choices.Values.All(choice => !choice.Enabled || choice.SelectedIndex >= 0); }
     }
 }

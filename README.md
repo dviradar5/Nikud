@@ -52,6 +52,8 @@ To redo a single word on Windows, select it and press the shortcut once to remov
 
 Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפָּר** (hairdresser), or **סָפַר** (counted), among other readings. In `קראתי ספר אתמול.`, the sentence provides context for **סֵפֶר**. The app suggests the contextual reading and displays available alternatives.
 
+Known phrases such as **בֵּית סֵפֶר** and **בֵּית סִפְרִי** appear as a single suggested reading with a definition. Choose **בחירת ניקוד לכל מילה בנפרד** to use the individual word readings.
+
 - **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.

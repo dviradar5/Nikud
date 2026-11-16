@@ -3,11 +3,33 @@ from unittest.mock import patch
 
 from app import for_browser
 from biblical_forms import FORMS as BIBLICAL_FORMS
+from compounds import COMPOUNDS
 from vocabulary import GLOSSES
 from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_all_compounds_keep_spelling_and_appear_in_sentences(self):
+        for spelling, (pointed, meaning) in COMPOUNDS.items():
+            with self.subTest(spelling=spelling):
+                self.assertEqual(tuple(plain(pointed).split()), spelling)
+                result = readings("במשפט נכתב " + " ".join(spelling) + " במפורש.")
+                self.assertEqual(result[2]["compound"], {"parts": pointed.split(), "meaning": meaning})
+                self.assertNotIn("compound", result[3])
+
+    def test_compounds_keep_individual_readings_and_pass_through_to_browser(self):
+        house, school = for_browser("בית־ספר")
+        self.assertEqual(house["compound"]["parts"], ["בֵּית", "סֵפֶר"])
+        self.assertIn(form_key("בַּיִת"), {form_key(option["text"]) for option in house["choices"]})
+        self.assertIn(form_key("סַפָּר"), {form_key(option["text"]) for option in school["choices"]})
+        self.assertEqual(for_browser("זה בית ספרי")[1]["compound"]["parts"], ["בֵּית", "סִפְרִי"])
+        self.assertEqual(for_browser("קניתי מוסר ים")[1]["compound"]["parts"], ["מוּסַר", "יָם"])
+
+    def test_compounds_do_not_cross_punctuation_or_repoint_existing_marks(self):
+        for text in ("בית, ספר", "בית\nספר", "בַּיִת ספר", "בֵּית סֵפֶר"):
+            with self.subTest(text=text):
+                self.assertNotIn("compound", for_browser(text)[0])
+
     def test_full_spelling_of_isha_keeps_both_readings_in_isolation(self):
         word = readings("אישה")[0]
         self.assertEqual(word["preferred"], -1)

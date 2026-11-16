@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyInformationalVersion("0.2.10")]
+[assembly: AssemblyInformationalVersion("0.2.11")]
 
 namespace Nikud
 {
@@ -124,9 +124,9 @@ namespace Nikud
                     Notify("The active app changed. Select the text and try again.");
                     return;
                 }
-                if (words.Any(word => word.Readings.Count > 1))
+                if (words.Any(word => word.Readings.Count > 1 || word.Compound != null))
                 {
-                    using (var dialog = new ReadingsDialog(source, words, artwork))
+                    using (var dialog = new ReadingsDialog(source, words, artwork, target.Window))
                         if (dialog.ShowDialog() != DialogResult.OK) return;
                     if (exiting) return;
                     if (!await target.ReturnFocusAsync())

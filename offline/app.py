@@ -30,6 +30,7 @@ def for_browser(text):
             "start": len(text[:match.start()].encode("utf-16-le")) // 2,
             "selected": word["preferred"],
             "choices": choices,
+            **({"compound": word["compound"]} if "compound" in word else {}),
         })
     return words
 

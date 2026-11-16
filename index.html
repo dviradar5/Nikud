@@ -75,15 +75,31 @@
   let snapshot = '';
   let active = -1;
 
+  function compoundStart(index) {
+    if (words[index]?.compound) return index;
+    return words[index - 1]?.compound ? index - 1 : -1;
+  }
+
+  function needsReading(word, index) {
+    const start = compoundStart(index);
+    return word.selected < 0 && word.choices.length > 1 &&
+      (start < 0 || words[start].useCompound === false);
+  }
+
   function render() {
     result.replaceChildren();
     let end = 0;
-    for (const [i, word] of words.entries()) {
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
       result.append(snapshot.slice(end, word.start));
-      const text = word.choices[word.selected]?.text ?? word.original;
-      if (word.choices.length > 1) {
+      const useCompound = word.compound && word.useCompound !== false;
+      const next = useCompound && words[i + 1];
+      const text = useCompound
+        ? word.compound.parts.join(snapshot.slice(word.start + word.original.length, next.start))
+        : word.choices[word.selected]?.text ?? word.original;
+      if (word.compound || word.choices.length > 1) {
         const button = document.createElement('button');
-        button.className = word.selected < 0 ? 'ambiguous unresolved' : 'ambiguous';
+        button.className = needsReading(word, i) ? 'ambiguous unresolved' : 'ambiguous';
         button.textContent = text;
         button.title = 'Choose a reading';
         button.onclick = () => showChoices(i, true);
@@ -91,15 +107,16 @@
       } else {
         result.append(text);
       }
-      end = word.start + word.original.length;
+      end = next ? next.start + next.original.length : word.start + word.original.length;
+      if (next) i++;
     }
     result.append(snapshot.slice(end));
-    const pending = words.filter(word => word.selected < 0 && word.choices.length > 1).length;
+    const pending = words.filter(needsReading).length;
     const skipped = words.filter(word => !word.choices.length).length;
     copy.disabled = !words.length || pending > 0;
     const notice = [];
     if (pending) notice.push(`Choose a reading for ${pending} highlighted ${pending === 1 ? 'word' : 'words'}.`);
-    else if (words.some(word => word.choices.length > 1)) notice.push('Select a highlighted word to review its reading.');
+    else if (words.some(word => word.compound || word.choices.length > 1)) notice.push('Select highlighted text to review its readings.');
     if (skipped) notice.push(`${skipped} ${skipped === 1 ? 'word was' : 'words were'} left as typed because the suggested spelling differed.`);
     status.textContent = notice.join(' ');
   }
@@ -116,6 +133,33 @@
     title.replaceChildren('Choose a reading for ', label);
     const options = byId('options');
     options.replaceChildren();
+    const start = compoundStart(index);
+    if (start >= 0) {
+      const phrase = words[start];
+      const useCompound = phrase.useCompound !== false;
+      const grouped = document.createElement('button');
+      grouped.textContent = `${phrase.compound.parts.join(' ')} — ${phrase.compound.meaning}`;
+      grouped.setAttribute('aria-pressed', useCompound);
+      grouped.onclick = () => {
+        phrase.useCompound = true;
+        render();
+        showChoices(start, true);
+      };
+      const separate = document.createElement('button');
+      separate.textContent = 'בחירת ניקוד לכל מילה בנפרד';
+      separate.setAttribute('aria-pressed', !useCompound);
+      separate.onclick = () => {
+        phrase.useCompound = false;
+        render();
+        showChoices(start, true);
+      };
+      options.append(grouped, separate);
+      if (useCompound) {
+        label.textContent = phrase.original + ' ' + words[start + 1].original;
+        if (focus) title.focus();
+        return;
+      }
+    }
     for (const [choiceIndex, choice] of word.choices.entries()) {
       const button = document.createElement('button');
       button.textContent = choice.meaning ? `${choice.text} — ${choice.meaning}` : choice.text;
@@ -132,7 +176,7 @@
   }
 
   function unresolvedIndex() {
-    return words.findIndex(word => word.selected < 0 && word.choices.length > 1);
+    return words.findIndex(needsReading);
   }
 
   source.addEventListener('input', () => {
