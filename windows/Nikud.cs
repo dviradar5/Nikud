@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyInformationalVersion("0.2.12")]
+[assembly: AssemblyInformationalVersion("0.2.13")]
 
 namespace Nikud
 {

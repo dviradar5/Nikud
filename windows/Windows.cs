@@ -285,16 +285,17 @@ namespace Nikud
                 StartPosition = FormStartPosition.Manual;
             }
             var ambiguous = words.Where(word => word.Readings.Count > 1).ToList();
-            ClientSize = new Size(460, Math.Min(510, 175 + (ambiguous.Count + words.Count(word => word.Compound != null)) * 65));
+            ClientSize = new Size(460, Math.Min(510, 185 + (ambiguous.Count + words.Count(word => word.Compound != null)) * 65));
             if (target != IntPtr.Zero)
             {
                 var area = Screen.FromHandle(target).WorkingArea;
                 Location = new Point(area.Left + Math.Max(0, (area.Width - Width) / 2),
                                      area.Top + Math.Max(0, (area.Height - Height) / 2));
             }
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 4 };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 5 };
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             var instruction = new Label { Text = "Review the suggested nikud before applying.", AutoSize = true };
@@ -351,8 +352,10 @@ namespace Nikud
             }
             list.Controls.Add(rows);
             layout.Controls.Add(list, 0, 1);
+            var palette = new NikudPalette(preview) { Visible = false };
+            layout.Controls.Add(palette, 0, 2);
             preview.AccessibleName = "Proposed text";
-            layout.Controls.Add(preview, 0, 2);
+            layout.Controls.Add(preview, 0, 3);
             var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill, AutoSize = true };
             var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
             apply.Click += (sender, args) =>
@@ -365,6 +368,10 @@ namespace Nikud
             {
                 preview.ReadOnly = !preview.ReadOnly;
                 list.Enabled = preview.ReadOnly;
+                Height += preview.ReadOnly ? -70 : 70;
+                palette.Visible = !preview.ReadOnly;
+                instruction.Text = preview.ReadOnly ? "Review the suggested nikud before applying."
+                    : "Place the cursor after a Hebrew letter, then choose a mark.";
                 edit.Text = preview.ReadOnly ? "Edit nikud…" : "Use suggestions";
                 UpdateApply();
                 if (!preview.ReadOnly) preview.Focus();
@@ -373,12 +380,13 @@ namespace Nikud
             {
                 if (preview.ReadOnly) return;
                 apply.Enabled = Engine.SameSpelling(source, preview.Text);
-                instruction.Text = apply.Enabled ? "Edit the nikud, then select Apply." : "Keep the original letters, spacing, and punctuation.";
+                instruction.Text = apply.Enabled ? "Place the cursor after a Hebrew letter, then choose a mark."
+                    : "Keep the original letters, spacing, and punctuation.";
             };
             buttons.Controls.Add(cancel);
             buttons.Controls.Add(apply);
             buttons.Controls.Add(edit);
-            layout.Controls.Add(buttons, 0, 3);
+            layout.Controls.Add(buttons, 0, 4);
             Controls.Add(layout);
             AcceptButton = apply;
             CancelButton = cancel;
@@ -406,6 +414,133 @@ namespace Nikud
             foreach (var choice in choices) choice.Key.Selected = choice.Value.SelectedIndex;
             preview.Text = Engine.Render(source, words);
             apply.Enabled = choices.Values.All(choice => !choice.Enabled || choice.SelectedIndex >= 0);
+        }
+    }
+
+    internal sealed class NikudPalette : FlowLayoutPanel
+    {
+        private readonly TextBox editor;
+        private readonly Dictionary<char, Button> buttons = new Dictionary<char, Button>();
+        private readonly ToolTip tips = new ToolTip();
+        private readonly Font markFont = new Font("Segoe UI", 12);
+        internal const char Clear = '\0';
+        internal const char Shuruq = '\u0001';
+
+        internal NikudPalette(TextBox editor)
+        {
+            this.editor = editor;
+            AutoSize = true;
+            Dock = DockStyle.Fill;
+            FlowDirection = FlowDirection.RightToLeft;
+            Add('\u05b0', "שווא");
+            Add('\u05b1', "חטף סגול");
+            Add('\u05b2', "חטף פתח");
+            Add('\u05b3', "חטף קמץ");
+            Add('\u05b4', "חיריק");
+            Add('\u05b5', "צירי");
+            Add('\u05b6', "סגול");
+            Add('\u05b7', "פתח");
+            Add('\u05b8', "קמץ");
+            Add('\u05c7', "קמץ קטן");
+            Add('\u05b9', "חולם");
+            Add('\u05ba', "חולם חסר על ו");
+            Add('\u05bb', "קובוץ");
+            Add('\u05bc', "דגש או מפיק בה״א");
+            Add(Shuruq, "שורוק בו״ו");
+            Add('\u05c1', "נקודת שי״ן ימנית");
+            Add('\u05c2', "נקודת שי״ן שמאלית");
+            Add('\u05bd', "מתג");
+            Add('\u05bf', "רפה");
+            Add(Clear, "הסר ניקוד מהאות");
+            editor.KeyUp += (sender, args) => RefreshButtons();
+            editor.MouseUp += (sender, args) => RefreshButtons();
+            editor.TextChanged += (sender, args) => RefreshButtons();
+            editor.GotFocus += (sender, args) => RefreshButtons();
+            VisibleChanged += (sender, args) => RefreshButtons();
+        }
+
+        private void Add(char mark, string name)
+        {
+            var button = new Button
+            {
+                Text = mark == Clear ? "×" : mark == Shuruq ? "וּ" : "\u25cc" + mark,
+                AccessibleName = name, Font = markFont, Size = new Size(33, 29),
+                Margin = new Padding(2), Enabled = false, RightToLeft = RightToLeft.No,
+            };
+            tips.SetToolTip(button, name);
+            button.Click += (sender, args) =>
+            {
+                int start, end;
+                string text = editor.Text;
+                if (!TryLetter(text, editor.SelectionStart, editor.SelectionLength, out start, out end)
+                    || !CanApply(text[start], mark)) return;
+                string pointed = ApplyMark(text.Substring(start, end - start), mark);
+                editor.Select(start, end - start);
+                editor.SelectedText = pointed;
+                editor.Focus();
+                editor.Select(start + pointed.Length, 0);
+                RefreshButtons();
+            };
+            buttons.Add(mark, button);
+            Controls.Add(button);
+        }
+
+        private void RefreshButtons()
+        {
+            int start, end;
+            string text = editor.Text;
+            bool found = TryLetter(text, editor.SelectionStart, editor.SelectionLength, out start, out end);
+            foreach (var entry in buttons)
+                entry.Value.Enabled = found && CanApply(text[start], entry.Key);
+        }
+
+        internal static bool TryLetter(string text, int caret, int selectionLength, out int start, out int end)
+        {
+            start = caret - 1;
+            end = caret;
+            if (selectionLength != 0) return false;
+            while (start >= 0 && IsHebrewMark(text[start])) start--;
+            if (start < 0 || text[start] < 'א' || text[start] > 'ת') return false;
+            while (end < text.Length && IsHebrewMark(text[end])) end++;
+            return true;
+        }
+
+        private static bool IsHebrewMark(char mark)
+        {
+            return (mark >= '\u0591' && mark <= '\u05af') || Group(mark) != 0 ||
+                mark == '\u05c4' || mark == '\u05c5';
+        }
+
+        internal static bool CanApply(char letter, char mark)
+        {
+            if (mark == '\u05c1' || mark == '\u05c2') return letter == 'ש';
+            if (mark == '\u05ba' || mark == Shuruq) return letter == 'ו';
+            if (mark == '\u05bc') return "אחער".IndexOf(letter) < 0;
+            return true;
+        }
+
+        private static int Group(char mark)
+        {
+            if ((mark >= '\u05b0' && mark <= '\u05bb') || mark == '\u05c7') return 1;
+            if (mark == '\u05c1' || mark == '\u05c2') return 2;
+            if (mark == '\u05bc' || mark == '\u05bf') return 3;
+            return mark == '\u05bd' ? 4 : 0;
+        }
+
+        internal static string ApplyMark(string letter, char mark)
+        {
+            if (mark == Shuruq)
+                return (letter[0] + new string(letter.Skip(1)
+                    .Where(existing => Group(existing) != 1 && Group(existing) != 3).ToArray()) + "\u05bc").Normalize();
+            return (letter[0] + new string(letter.Skip(1)
+                .Where(existing => Group(existing) == 0 || (mark != Clear && Group(existing) != Group(mark)))
+                .ToArray()) + (mark == Clear ? "" : mark.ToString())).Normalize();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) { tips.Dispose(); markFont.Dispose(); }
+            base.Dispose(disposing);
         }
     }
 }

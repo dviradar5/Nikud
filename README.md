@@ -24,7 +24,7 @@ If every Hebrew word in the selection already has nikud, Nikud removes the marks
 2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. Click **Vocalize selection** to assign an **F-key** such as **F2**, tap **Ctrl** twice, or press a combination with **Ctrl**, **Alt**, or **Win**. Windows can reserve some combinations, and Nikud uses **Ctrl+C** and **Ctrl+V** internally.
 3. Select an editable word or sentence and press the shortcut to add or remove nikud. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
 
-**Review new nikud before applying** is enabled by default. The preview lets you choose a reading or use **Edit nikud…** to adjust the marks yourself. On macOS, use **Edit nikud…** beside **Copy result**.
+**Review new nikud before applying** is enabled by default. In the Windows preview, choose **Edit nikud…**, place the cursor after a Hebrew letter, and click a mark in the toolbar. **×** removes the nikud from that letter. On macOS, use **Edit nikud…** beside **Copy result** to edit the marks with your keyboard.
 
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
