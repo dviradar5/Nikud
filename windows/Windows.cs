@@ -425,6 +425,8 @@ namespace Nikud
         private readonly Font markFont = new Font("Segoe UI", 12);
         internal const char Clear = '\0';
         internal const char Shuruq = '\u0001';
+        internal const char HolamHaser = '\u05ba';
+        internal const char HolamMale = '\u05b9';
 
         internal NikudPalette(TextBox editor)
         {
@@ -432,6 +434,9 @@ namespace Nikud
             AutoSize = true;
             Dock = DockStyle.Fill;
             FlowDirection = FlowDirection.RightToLeft;
+            Add(HolamHaser, "חולם חסר — נקודה משמאל למעלה");
+            Add(HolamMale, "חולם מלא — נקודה מעל ו בלבד");
+            Add(Shuruq, "שורוק — נקודה באמצע ו");
             Add('\u05b0', "שווא");
             Add('\u05b1', "חטף סגול");
             Add('\u05b2', "חטף פתח");
@@ -442,11 +447,8 @@ namespace Nikud
             Add('\u05b7', "פתח");
             Add('\u05b8', "קמץ");
             Add('\u05c7', "קמץ קטן");
-            Add('\u05b9', "חולם רגיל (חולם מלא על ו)");
-            Add('\u05ba', "חולם חסר על ו");
             Add('\u05bb', "קובוץ");
             Add('\u05bc', "דגש או מפיק בה״א");
-            Add(Shuruq, "שורוק בו״ו");
             Add('\u05c1', "נקודת שי״ן ימנית");
             Add('\u05c2', "נקודת שי״ן שמאלית");
             Add('\u05bd', "מתג");
@@ -464,7 +466,7 @@ namespace Nikud
             string baseLetter = DotIconBase(mark);
             var button = new Button
             {
-                Text = baseLetter != null ? "" : mark == Clear ? "×" : mark == Shuruq ? "וּ" : "\u25cc" + mark,
+                Text = baseLetter != null ? "" : mark == Clear ? "×" : "\u25cc" + mark,
                 AccessibleName = name, Font = markFont, Size = new Size(33, 29),
                 Margin = new Padding(2), Enabled = false, RightToLeft = RightToLeft.No,
             };
@@ -490,7 +492,8 @@ namespace Nikud
 
         private static string DotIconBase(char mark)
         {
-            if (mark == '\u05b9' || mark == '\u05ba') return "ו";
+            if (mark == HolamHaser) return "ב";
+            if (mark == HolamMale || mark == Shuruq) return "ו";
             if (mark == '\u05c1' || mark == '\u05c2') return "ש";
             return null;
         }
@@ -502,12 +505,13 @@ namespace Nikud
             int height = button.ClientSize.Height;
             int width = button.ClientSize.Width;
             int dotSize = Math.Max(3, (int)Math.Round(height * .12));
-            double x = mark == '\u05b9' ? .50 : mark == '\u05c1' ? .69 : .31;
+            double x = mark == HolamMale ? .50 : mark == '\u05c1' ? .69 : .31;
+            int dotY = mark == Shuruq ? height * 3 / 5 : height / 5;
             Color color = button.Enabled ? SystemColors.ControlText : SystemColors.GrayText;
             TextRenderer.DrawText(graphics, letter, button.Font, new Rectangle(0, dotSize, width, height - dotSize),
                 color, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             using (var brush = new SolidBrush(color))
-                graphics.FillEllipse(brush, (int)Math.Round(width * x) - dotSize / 2, height / 5, dotSize, dotSize);
+                graphics.FillEllipse(brush, (int)Math.Round(width * x) - dotSize / 2, dotY, dotSize, dotSize);
         }
 
         private void RefreshButtons()
@@ -539,7 +543,7 @@ namespace Nikud
         internal static bool CanApply(char letter, char mark)
         {
             if (mark == '\u05c1' || mark == '\u05c2') return letter == 'ש';
-            if (mark == '\u05ba' || mark == Shuruq) return letter == 'ו';
+            if (mark == HolamMale || mark == Shuruq) return letter == 'ו';
             if (mark == '\u05bc') return "אחער".IndexOf(letter) < 0;
             return true;
         }
@@ -557,8 +561,13 @@ namespace Nikud
             if (mark == Shuruq)
                 return (letter[0] + new string(letter.Skip(1)
                     .Where(existing => Group(existing) != 1 && Group(existing) != 3).ToArray()) + "\u05bc").Normalize();
+            bool replacesShuruq = letter[0] == 'ו' && (mark == HolamHaser || mark == HolamMale);
+            // The special haser code point is only used on vav. Elsewhere ordinary
+            // holam already renders above-left.
+            if (mark == HolamHaser && letter[0] != 'ו') mark = '\u05b9';
             return (letter[0] + new string(letter.Skip(1)
-                .Where(existing => Group(existing) == 0 || (mark != Clear && Group(existing) != Group(mark)))
+                .Where(existing => !(replacesShuruq && existing == '\u05bc') &&
+                    (Group(existing) == 0 || (mark != Clear && Group(existing) != Group(mark))))
                 .ToArray()) + (mark == Clear ? "" : mark.ToString())).Normalize();
         }
 
