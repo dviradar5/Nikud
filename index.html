@@ -15,7 +15,7 @@
   .panel { background: #fffdf6; border: 1px solid #d2d9ca; border-radius: 16px; padding: 20px; min-width: 0; }
   h2, label { font-size: 15px; font-weight: 650; margin: 0; }
   textarea, #result { color: inherit; font: 25px/1.65 Arial, sans-serif; min-height: 175px; padding: 12px; width: 100%; margin: 12px 0; border: 1px solid #d2d9ca; border-radius: 8px; background: #fffefb; }
-  textarea { resize: vertical; display: block; }
+  textarea { resize: vertical; }
   #result { white-space: pre-wrap; overflow-wrap: anywhere; }
   button { font: inherit; cursor: pointer; color: #174936; background: #e9eee3; border: 1px solid #cbd6c7; padding: 8px 13px; border-radius: 7px; }
   button.primary { color: white; background: #174936; border-color: #174936; }
@@ -50,7 +50,9 @@
     <section class="panel">
       <h2>Result</h2>
       <div id="result" lang="he" dir="rtl" aria-label="Processed Hebrew text"></div>
+      <textarea id="manual" lang="he" dir="rtl" aria-label="Edit the suggested nikud" hidden></textarea>
       <button id="copy" disabled>Copy result</button>
+      <button id="edit" disabled>Edit nikud…</button>
     </section>
   </div>
   <section id="review" class="panel" hidden>
@@ -71,6 +73,9 @@
   const status = byId('status');
   const review = byId('review');
   const copy = byId('copy');
+  const edit = byId('edit');
+  const manual = byId('manual');
+  const stripNikud = text => text.normalize('NFD').replace(/[\u05b0-\u05bd\u05bf\u05c1\u05c2\u05c7]/g, '').normalize();
   let words = [];
   let snapshot = '';
   let active = -1;
@@ -87,6 +92,10 @@
   }
 
   function render() {
+    manual.hidden = true;
+    result.hidden = false;
+    edit.textContent = 'Edit nikud…';
+    edit.disabled = !words.length;
     result.replaceChildren();
     let end = 0;
     for (let i = 0; i < words.length; i++) {
@@ -237,11 +246,36 @@
       status.textContent = 'Use Ctrl+V or ⌘+V to paste into the text box.';
     }
   };
+  function validateManual() {
+    copy.disabled = stripNikud(manual.value) !== stripNikud(snapshot);
+    status.textContent = copy.disabled ? 'Keep the original letters, spacing, and punctuation.' : 'Review your edits, then copy the result.';
+  }
+  manual.addEventListener('input', validateManual);
+  edit.onclick = () => {
+    if (!manual.hidden) {
+      render();
+      showChoices(unresolvedIndex(), true);
+      return;
+    }
+    manual.value = result.textContent;
+    result.hidden = true;
+    manual.hidden = false;
+    edit.textContent = 'Use suggestions';
+    showChoices(-1);
+    validateManual();
+    manual.focus();
+  };
   copy.onclick = async () => {
     try {
-      await navigator.clipboard.writeText(result.textContent);
+      await navigator.clipboard.writeText(manual.hidden ? result.textContent : manual.value);
       status.textContent = 'Copied.';
     } catch {
+      if (!manual.hidden) {
+        manual.focus();
+        manual.select();
+        status.textContent = 'Use Ctrl+C or ⌘+C to copy the selected result.';
+        return;
+      }
       const range = document.createRange();
       range.selectNodeContents(result);
       const selection = window.getSelection();

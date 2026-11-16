@@ -48,7 +48,7 @@ namespace Nikud
         {
             var spans = Hebrew.Matches(text).Cast<Match>().ToArray();
             if (spans.Length == 0) throw new InvalidOperationException("Select at least one Hebrew word.");
-            if (spans.All(span => Marks.IsMatch(span.Value)))
+            if (IsRemoval(text))
             {
                 return spans.Select(span => new Word
                 {
@@ -86,6 +86,14 @@ namespace Nikud
                 return ParseWords(text, await output.ConfigureAwait(false));
             }
         }
+
+        internal static bool IsRemoval(string text)
+        {
+            var spans = Hebrew.Matches(text).Cast<Match>().ToArray();
+            return spans.Length > 0 && spans.All(span => Marks.IsMatch(span.Value));
+        }
+
+        internal static bool SameSpelling(string left, string right) { return Strip(left) == Strip(right); }
 
         internal static List<Word> ParseWords(string text, string result)
         {

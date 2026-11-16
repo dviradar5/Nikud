@@ -21,8 +21,10 @@ If every Hebrew word in the selection already has nikud, Nikud removes the marks
 ## Windows
 
 1. Download the Windows ZIP above. Right-click it and choose **Extract All**. Open **Nikud.exe** inside the extracted `nikud` folder. Keep the `NikudEngine` folder beside it.
-2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. To change it, click **Vocalize selection** and press a combination that includes **Ctrl**, **Alt**, or **Win**.
+2. Settings shows the active shortcut. The default is **Ctrl+Shift+J**. Click **Vocalize selection** to assign an **F-key** such as **F2**, tap **Ctrl** twice, or press a combination with **Ctrl**, **Alt**, or **Win**. Windows can reserve some combinations, and Nikud uses **Ctrl+C** and **Ctrl+V** internally.
 3. Select an editable word or sentence and press the shortcut to add or remove nikud. If a reading needs review, choose it in the popup and select **Apply**. **Cancel** leaves the original selection as typed.
+
+**Review new nikud before applying** is enabled by default. The preview lets you choose a reading or use **Edit nikud…** to adjust the marks yourself. On macOS, use **Edit nikud…** beside **Copy result**.
 
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
@@ -57,6 +59,7 @@ Known phrases such as **בֵּית סֵפֶר** and **בֵּית סִפְרִי*
 - **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
+- **Words outside the lexicon.** Nakdimon suggests a reading from the surrounding text. When Nikud finds a close match in the lexicon, it can also suggest up to two readings based on similar spellings or a known stem. The chooser labels these as guesses.
 
 Nikud runs locally and requires no API key or account.
 

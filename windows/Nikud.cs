@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyInformationalVersion("0.2.11")]
+[assembly: AssemblyInformationalVersion("0.2.12")]
 
 namespace Nikud
 {
@@ -97,7 +97,7 @@ namespace Nikud
 
         private async void VocalizeSelection()
         {
-            if (busy || exiting) return;
+            if (busy || exiting || settings.CapturingShortcut && settings.ContainsFocus) return;
             busy = true;
             try
             {
@@ -124,10 +124,14 @@ namespace Nikud
                     Notify("The active app changed. Select the text and try again.");
                     return;
                 }
-                if (words.Any(word => word.Readings.Count > 1 || word.Compound != null))
+                string result;
+                if ((settings.ReviewBeforeApplying && !Engine.IsRemoval(source)) || words.Any(word => word.Readings.Count > 1 || word.Compound != null))
                 {
                     using (var dialog = new ReadingsDialog(source, words, artwork, target.Window))
+                    {
                         if (dialog.ShowDialog() != DialogResult.OK) return;
+                        result = dialog.ResultText;
+                    }
                     if (exiting) return;
                     if (!await target.ReturnFocusAsync())
                     {
@@ -135,8 +139,7 @@ namespace Nikud
                         return;
                     }
                 }
-
-                var result = Engine.Render(source, words);
+                else result = Engine.Render(source, words);
                 if (source == result)
                 {
                     Notify("The selection already matches the result.");

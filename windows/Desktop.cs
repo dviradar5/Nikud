@@ -10,6 +10,10 @@ namespace Nikud
     internal sealed class Hotkey : NativeWindow, IDisposable
     {
         private readonly Action callback;
+        private readonly KeyboardHook keyboardHook;
+        private IntPtr hook;
+        private readonly ControlTaps taps = new ControlTaps();
+        internal const Keys DoubleCtrl = (Keys)256;
         private int id;
         internal uint Modifiers { get; private set; }
         internal Keys Key { get; private set; }
@@ -17,16 +21,34 @@ namespace Nikud
         internal Hotkey(Action callback)
         {
             this.callback = callback;
+            keyboardHook = WatchKeyboard;
             CreateHandle(new CreateParams());
+        }
+
+        internal static bool IsAllowed(uint modifiers, Keys key)
+        {
+            if (key == DoubleCtrl || key == Keys.None) return modifiers == 0;
+            if (key == Keys.ControlKey || key == Keys.Menu || key == Keys.ShiftKey ||
+                (key >= Keys.LShiftKey && key <= Keys.RMenu) || key == Keys.LWin || key == Keys.RWin)
+                return false;
+            if (modifiers == 2 && (key == Keys.C || key == Keys.V)) return false;
+            return (modifiers & ~15u) == 0 && ((modifiers & 11) != 0 || (key >= Keys.F1 && key <= Keys.F24));
         }
 
         internal bool Set(uint modifiers, Keys key)
         {
+            if (!IsAllowed(modifiers, key)) return false;
             if (Modifiers == modifiers && Key == key) return true;
             int next = id == 1 ? 2 : 1;
-            if (key != Keys.None && !RegisterHotKey(Handle, next, modifiers | 0x4000, (uint)key)) return false;
+            if (key == DoubleCtrl)
+            {
+                hook = SetWindowsHookEx(13, keyboardHook, GetModuleHandle(null), 0);
+                if (hook == IntPtr.Zero) return false;
+            }
+            else if (key != Keys.None && !RegisterHotKey(Handle, next, modifiers | 0x4000, (uint)key)) return false;
+            if (Key == DoubleCtrl) RemoveHook();
             if (id != 0) UnregisterHotKey(Handle, id);
-            id = key == Keys.None ? 0 : next;
+            id = key == Keys.None || key == DoubleCtrl ? 0 : next;
             Modifiers = modifiers;
             Key = key;
             return true;
@@ -35,6 +57,7 @@ namespace Nikud
         internal static string Describe(uint modifiers, Keys key)
         {
             if (key == Keys.None) return "Not set";
+            if (key == DoubleCtrl) return "Ctrl, Ctrl";
             var parts = new List<string>();
             if ((modifiers & 2) != 0) parts.Add("Ctrl");
             if ((modifiers & 1) != 0) parts.Add("Alt");
@@ -48,7 +71,7 @@ namespace Nikud
 
         internal bool KeysHeld()
         {
-            return Down(Key) || ModifierHeld();
+            return (Key != DoubleCtrl && Down(Key)) || ModifierHeld();
         }
 
         internal static bool ModifierHeld()
@@ -59,18 +82,77 @@ namespace Nikud
         protected override void WndProc(ref Message message)
         {
             if (message.Msg == 0x0312 && id != 0 && message.WParam.ToInt32() == id) callback();
+            if (message.Msg == 0x8001 && Key == DoubleCtrl) callback();
             base.WndProc(ref message);
         }
 
         public void Dispose()
         {
+            RemoveHook();
             if (id != 0) UnregisterHotKey(Handle, id);
             DestroyHandle();
         }
 
+        private IntPtr WatchKeyboard(int code, IntPtr message, IntPtr data)
+        {
+            if (code >= 0 && (Marshal.ReadInt32(data, 8) & 0x10) == 0)
+            {
+                var key = (Keys)Marshal.ReadInt32(data);
+                bool ctrl = key == Keys.LControlKey || key == Keys.RControlKey || key == Keys.ControlKey;
+                bool released = (Marshal.ReadInt32(data, 8) & 0x80) != 0;
+                if (!ctrl) taps.Cancel();
+                else if (!released && (Down(Keys.Menu) || Down(Keys.ShiftKey) || Down(Keys.LWin) || Down(Keys.RWin)))
+                    taps.Cancel();
+                else if (taps.Input(key, released, Environment.TickCount))
+                    PostMessage(Handle, 0x8001, IntPtr.Zero, IntPtr.Zero);
+            }
+            return CallNextHookEx(hook, code, message, data);
+        }
+
+        private void RemoveHook()
+        {
+            if (hook != IntPtr.Zero) UnhookWindowsHookEx(hook);
+            hook = IntPtr.Zero;
+            taps.Cancel();
+        }
+
+        private delegate IntPtr KeyboardHook(int code, IntPtr wParam, IntPtr data);
+        [DllImport("user32.dll")] private static extern IntPtr SetWindowsHookEx(int type, KeyboardHook callback, IntPtr module, uint thread);
+        [DllImport("user32.dll")] private static extern bool UnhookWindowsHookEx(IntPtr handle);
+        [DllImport("user32.dll")] private static extern IntPtr CallNextHookEx(IntPtr handle, int code, IntPtr wParam, IntPtr data);
+        [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string name);
+
         [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr window, int id, uint modifiers, uint key);
         [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr window, int id);
         [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
+    }
+
+    internal sealed class ControlTaps
+    {
+        private Keys held;
+        private int pressedAt;
+        private int? lastTap;
+
+        internal void Cancel() { held = Keys.None; lastTap = null; }
+
+        internal bool Input(Keys key, bool released, int now)
+        {
+            if (!released)
+            {
+                if (held == key) return false;
+                if (held != Keys.None) { Cancel(); return false; }
+                held = key;
+                pressedAt = now;
+                return false;
+            }
+            if (held != key) { Cancel(); return false; }
+            held = Keys.None;
+            if (unchecked(now - pressedAt) > 350) { Cancel(); return false; }
+            bool doubled = lastTap.HasValue && unchecked(now - lastTap.Value) <= 450;
+            lastTap = doubled ? (int?)null : now;
+            return doubled;
+        }
     }
 
     internal sealed class SelectionTarget

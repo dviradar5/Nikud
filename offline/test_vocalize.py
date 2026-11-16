@@ -9,6 +9,15 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_unknown_words_offer_ranked_spelling_preserving_guesses(self):
+        word = readings("מדלוג")[0]
+        self.assertEqual(word["preferred"], -1)
+        self.assertEqual(word["readings"][0]["meaning"], "הצעת המודל")
+        guesses = word["readings"][1:]
+        self.assertTrue(1 <= len(guesses) <= 2)
+        self.assertTrue(all(plain(guess["text"]) == "מדלוג" for guess in guesses))
+        self.assertTrue(all(guess["meaning"] == "השערה לפי תבנית דומה" for guess in guesses))
+
     def test_all_compounds_keep_spelling_and_appear_in_sentences(self):
         for spelling, (pointed, meaning) in COMPOUNDS.items():
             with self.subTest(spelling=spelling):
