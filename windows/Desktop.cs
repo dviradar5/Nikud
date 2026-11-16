@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -159,6 +160,7 @@ namespace Nikud
     {
         internal readonly IntPtr Window;
         private readonly IntPtr focus;
+        private bool IsWord { get { return ClassName(Window) == "OpusApp"; } }
 
         private SelectionTarget(IntPtr window, IntPtr focus)
         {
@@ -192,6 +194,11 @@ namespace Nikud
         internal async Task<string> ReadAsync()
         {
             if (!IsCurrent || Hotkey.ModifierHeld()) return null;
+            if (IsWord)
+            {
+                dynamic selection = WordSelection();
+                if (selection != null) return (string)selection.Range.Text;
+            }
             var clipboard = new ClipboardSession();
             try { return await CopyAsync(clipboard); }
             finally { clipboard.Restore(); }
@@ -200,6 +207,7 @@ namespace Nikud
         internal async Task<bool> ReplaceAsync(string expected, string replacement)
         {
             if (!IsCurrent || Hotkey.ModifierHeld()) return false;
+            if (IsWord) return ReplaceInWord(expected, replacement);
             var clipboard = new ClipboardSession();
             try
             {
@@ -211,6 +219,73 @@ namespace Nikud
             }
             finally { clipboard.Restore(); }
         }
+
+        private dynamic WordSelection()
+        {
+            // Word exposes the document window's object model through OBJID_NATIVEOM.
+            var editor = ClassName(focus) == "_WwG" ? focus : IntPtr.Zero;
+            if (editor == IntPtr.Zero)
+            {
+                EnumChildWindows(Window, (child, _) =>
+                {
+                    if (ClassName(child) != "_WwG" || !IsWindowVisible(child)) return true;
+                    editor = child;
+                    return false;
+                }, IntPtr.Zero);
+            }
+            if (editor == IntPtr.Zero) return null;
+            var dispatch = new Guid("00020400-0000-0000-C000-000000000046");
+            object wordWindow;
+            return AccessibleObjectFromWindow(editor, 0xfffffff0, ref dispatch, out wordWindow) == 0
+                ? ((dynamic)wordWindow).Selection : null;
+        }
+
+        private bool ReplaceInWord(string expected, string replacement)
+        {
+            return ReplaceWordSelection(WordSelection(), expected, replacement);
+        }
+
+        internal static bool ReplaceWordSelection(dynamic selection, string expected, string replacement)
+        {
+            if (selection == null) return false;
+            dynamic range = selection.Range;
+            int start = range.Start;
+            if (range.End - start != expected.Length || (string)range.Text != expected) return false;
+            var changes = Engine.MarkChanges(expected, replacement);
+            if (changes == null) return false;
+
+            // Edit combining marks only, leaving Word's paragraph and character runs in place.
+            var edits = new List<Action>();
+            foreach (var change in changes)
+            {
+                dynamic marks = range.Duplicate;
+                marks.SetRange(start + change.Start, start + change.Start + change.Length);
+                if (((string)marks.Text ?? "") != expected.Substring(change.Start, change.Length)) return false;
+                edits.Add(() => marks.Text = change.Text);
+            }
+            dynamic undo = selection.Application.UndoRecord;
+            undo.StartCustomRecord("Nikud");
+            try
+            {
+                for (int index = edits.Count - 1; index >= 0; index--) edits[index]();
+            }
+            finally { undo.EndCustomRecord(); }
+            return true;
+        }
+
+        private static string ClassName(IntPtr window)
+        {
+            var name = new StringBuilder(64);
+            GetClassName(window, name, name.Capacity);
+            return name.ToString();
+        }
+
+        private delegate bool ChildWindowCallback(IntPtr window, IntPtr parameter);
+        [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window, ChildWindowCallback callback, IntPtr parameter);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+        [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+        [DllImport("oleacc.dll")] private static extern int AccessibleObjectFromWindow(IntPtr window, uint objectId,
+            ref Guid interfaceId, [MarshalAs(UnmanagedType.IDispatch)] out object result);
 
         private async Task<string> CopyAsync(ClipboardSession clipboard)
         {

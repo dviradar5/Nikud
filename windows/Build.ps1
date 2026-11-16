@@ -8,7 +8,7 @@ Push-Location -LiteralPath $stage.FullName
 try {
     $sources = 'Nikud.cs', 'Desktop.cs', 'Windows.cs', 'Engine.cs'
     foreach ($file in $sources) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination . }
-    & $compiler /nologo /target:winexe /platform:anycpu /codepage:65001 /out:Nikud.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll $sources
+    & $compiler /nologo /target:winexe /platform:anycpu /codepage:65001 /out:Nikud.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /r:Microsoft.CSharp.dll $sources
     if ($LASTEXITCODE -ne 0) { throw "The Windows build failed with exit code $LASTEXITCODE." }
     Copy-Item -LiteralPath Nikud.exe -Destination (Join-Path $project 'Nikud.exe')
 } finally {

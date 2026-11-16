@@ -11,10 +11,10 @@ These links download the latest release packages. [All releases](https://github.
 
 ## What happens when you select a sentence
 
-1. On Windows, the tray app temporarily uses the clipboard to read the selected text. On macOS, the browser editor passes the text to a local Python process.
+1. On Windows, the tray app reads the selection directly in Microsoft Word and uses the clipboard in other editors. On macOS, the browser editor passes the text to a local Python process.
 2. Nakdimon predicts vowel points, dagesh, and shin or sin dots using the text around each character. Nikud lines up the prediction with the Hebrew words in the original selection.
 3. UniMorph supplies alternative readings for the same spelling. A small set of reviewed entries covers common cases such as **חָמֵשׁ**. On Windows, the chooser shows available alternatives and preselects the contextual suggestion when one is available. The macOS editor makes alternatives available by clicking a highlighted word.
-4. On Windows, Nikud checks that the selection still matches before pasting the result back. On macOS, use **Copy result**. The app preserves spaces, punctuation, and non-Hebrew text.
+4. On Windows, Nikud checks that the selection still matches. In Word it edits the marks in place to preserve paragraph direction and formatting. In other editors it pastes the result. On macOS, use **Copy result**. The app preserves spaces, punctuation, and non-Hebrew text.
 
 If every Hebrew word in the selection already has nikud, Nikud removes the marks directly. The prediction step is only used when the input contains unpointed words.
 
@@ -26,7 +26,7 @@ If every Hebrew word in the selection already has nikud, Nikud removes the marks
 
 Closing Settings leaves Nikud in the notification area. Double-click **נִ**, sometimes under **^**, to reopen Settings. The tray menu also has **Open text editor** for typing or pasting text directly. Right-click the icon and choose **Exit** before replacing an older installation.
 
-The shortcut uses standard Windows copy and paste. Keep the selection active while Nikud works. Some apps block simulated keystrokes, particularly when they run as administrator. If the shortcut fails, check the last status in Settings and try the built-in editor with `ספר`.
+Keep the selection active while Nikud works. Outside Word, the shortcut uses standard Windows copy and paste. Some apps block simulated keystrokes, particularly when they run as administrator. If the shortcut fails, check the last status in Settings and try the built-in editor with `ספר`.
 
 ## macOS
 

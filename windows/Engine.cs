@@ -17,6 +17,13 @@ namespace Nikud
         internal string Meaning;
     }
 
+    internal sealed class MarkChange
+    {
+        internal int Start;
+        internal int Length;
+        internal string Text;
+    }
+
     internal sealed class Word
     {
         internal int Start;
@@ -94,6 +101,25 @@ namespace Nikud
         }
 
         internal static bool SameSpelling(string left, string right) { return Strip(left) == Strip(right); }
+
+        internal static List<MarkChange> MarkChanges(string original, string replacement)
+        {
+            var changes = new List<MarkChange>();
+            int before = 0, after = 0;
+            while (before < original.Length && after < replacement.Length)
+            {
+                char letter = original[before++];
+                if (letter != replacement[after++]) return null;
+                if (letter < 'א' || letter > 'ת') continue;
+                int start = before, next = after;
+                while (before < original.Length && Marks.IsMatch(original[before].ToString())) before++;
+                while (after < replacement.Length && Marks.IsMatch(replacement[after].ToString())) after++;
+                string marks = replacement.Substring(next, after - next);
+                if (marks != original.Substring(start, before - start))
+                    changes.Add(new MarkChange { Start = start, Length = before - start, Text = marks });
+            }
+            return before == original.Length && after == replacement.Length ? changes : null;
+        }
 
         internal static List<Word> ParseWords(string text, string result)
         {
