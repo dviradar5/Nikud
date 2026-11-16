@@ -65,7 +65,7 @@ Known phrases such as **בֵּית סֵפֶר** and **בֵּית סִפְרִי*
 - **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.
-- **Words outside the lexicon.** Nakdimon suggests a reading from the surrounding text. When Nikud finds a close match in the lexicon, it can also suggest up to two readings based on similar spellings or a known stem. The chooser labels these as guesses.
+- **Words outside the lexicon.** Nakdimon suggests a reading from the surrounding text. Use **Edit nikud…** to correct it if needed.
 
 Nikud runs locally and requires no API key or account.
 

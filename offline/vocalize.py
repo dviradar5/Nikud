@@ -227,53 +227,6 @@ def expand_readings(groups):
     return [(form, meaning) for form, meanings in groups for meaning in meanings]
 
 
-def letter_class(letter):
-    # Keep matres and gutturals distinct. Dagesh-sensitive and final letters
-    # also have different behavior from ordinary consonants.
-    if letter in "אהחעויורםןץ":
-        return letter
-    if letter in BEGED_KEFET:
-        return letter if letter in "ךף" else "ב"
-    return "ש" if letter == "ש" else "צ"
-
-
-@cache
-def word_patterns():
-    patterns = defaultdict(list)
-    for spelling, readings_by_form in lexicon().items():
-        if not re.fullmatch("[א-ת]{3,8}", spelling):
-            continue
-        signature = tuple(map(letter_class, spelling))
-        for form, _ in readings_by_form.values():
-            parts = tuple(LETTER.findall(form_key(form)))
-            if len(parts) == len(spelling):
-                patterns[signature].append((spelling, parts))
-    return patterns
-
-
-def inferred_options(word, model):
-    """Offer spelling-preserving guesses, ranked by context and lexical similarity."""
-    if not re.fullmatch("[א-ת]{3,8}", word):
-        return []
-    model_parts = LETTER.findall(form_key(model))
-    alternatives = {}
-    if word[0] in "הובכלמש" and len(word) > 3 and model_parts[0][1:]:
-        for stem, _ in lexicon().get(word[1:], {}).values():
-            candidate = model_parts[0] + stem
-            if form_key(candidate) != form_key(model):
-                alternatives[candidate] = (0, 0, candidate)
-    for spelling, parts in word_patterns().get(tuple(map(letter_class, word)), ()):
-        shared = sum(a == b for a, b in zip(word, spelling))
-        if shared < len(word) - 2:
-            continue
-        endings = tuple(part[1:] for part in parts)
-        candidate = "".join(letter + marks for letter, marks in zip(word, endings))
-        if form_key(candidate) == form_key(model):
-            continue
-        distance = sum(part[1:] != marks for part, marks in zip(model_parts, endings))
-        score = (1 + distance, -shared, candidate)
-        alternatives[candidate] = min(alternatives.get(candidate, score), score)
-    return [(form, "השערה לפי תבנית דומה") for form in sorted(alternatives, key=alternatives.get)[:2]]
 
 
 def readings(text):
@@ -334,7 +287,7 @@ def readings(text):
                     model = candidates[model_key][0]
             allow_model_only = (word not in GLOSSES and model != word and len(words) > 1)
             if not candidates:
-                options = [(model, "הצעת המודל")] + inferred_options(word, model)
+                options = [(model, "הצעת המודל")]
                 preferred = 0
             elif model_key in candidates or allow_model_only:
                 _, meanings = candidates.pop(model_key, (model, ("",)))
