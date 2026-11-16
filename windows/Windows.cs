@@ -492,7 +492,7 @@ namespace Nikud
 
         private static string DotIconBase(char mark)
         {
-            if (mark == HolamHaser) return "ב";
+            if (mark == HolamHaser) return "\u25cc";
             if (mark == HolamMale || mark == Shuruq) return "ו";
             if (mark == '\u05c1' || mark == '\u05c2') return "ש";
             return null;
