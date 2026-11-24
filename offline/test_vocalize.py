@@ -9,6 +9,23 @@ from vocalize import form_key, plain, readings, restore_lexical_dagesh
 
 
 class VocalizeTests(unittest.TestCase):
+    @patch("vocalize.model_session", side_effect=AssertionError("Model should not load"))
+    @patch("vocalize.predict", side_effect=AssertionError("Prediction should not run"))
+    def test_shomer_offers_all_three_readings_without_loading_the_model(self, _predict, _session):
+        result = readings("שומר")[0]
+        self.assertEqual(result["preferred"], -1)
+        self.assertEqual({form_key(option["text"]) for option in result["readings"]},
+                         {form_key(form) for form in ("שׁוֹמֵר", "שׁוּמָר", "שׁוּמֵר")})
+        self.assertTrue(all(option["meaning"] for option in result["readings"]))
+
+    def test_shomer_keeps_all_readings_in_sentence_context(self):
+        for text, index in (("השומר שומר על השער", 1), ("קניתי שומר בשוק", 1),
+                            ("למדתי על שומר העתיקה", 2)):
+            with self.subTest(text=text):
+                result = readings(text)[index]
+                self.assertLessEqual({form_key(form) for form in ("שׁוֹמֵר", "שׁוּמָר", "שׁוּמֵר")},
+                                     {form_key(option["text"]) for option in result["readings"]})
+
     def test_words_without_lexicon_entries_offer_only_the_model_reading(self):
         for word, expected in zip(readings("הילד החמוד"), ("הַיֶּלֶד", "הַחָמוּד"), strict=True):
             self.assertEqual(word["preferred"], 0)
@@ -224,7 +241,7 @@ class VocalizeTests(unittest.TestCase):
     @patch("vocalize.predict", return_value="אבג")
     def test_rejects_a_model_result_that_changes_letters(self, _predict):
         with self.assertRaisesRegex(ValueError, "align"):
-            readings("שלום")
+            readings("שלום עולם")
 
 
 if __name__ == "__main__":

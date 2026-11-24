@@ -8,10 +8,6 @@ from collections import defaultdict
 from functools import cache
 from pathlib import Path
 
-from onnxruntime import InferenceSession, SessionOptions
-from nakdimon.config import MAIN_MODEL
-from nakdimon.predict import predict
-
 from biblical_forms import FORMS as BIBLICAL_FORMS
 from compounds import COMPOUNDS
 from vocabulary import GLOSSES
@@ -63,6 +59,7 @@ PREDICATE_PATTERN = re.compile(
 )
 # Common spellings reviewed against the number tables and standard pointed forms.
 REVIEWED_READINGS = {
+    "שומר": GLOSSES["שומר"],
     "אישה": {
         "אִישָּׁה": ("אדם בוגר ממין נקבה", "בת זוג נשואה"),
         "אִישָׁהּ": "בעלה",
@@ -190,10 +187,19 @@ def restore_lexical_dagesh(model, candidates):
 
 @cache
 def model_session():
+    from onnxruntime import InferenceSession, SessionOptions
+    from nakdimon.config import MAIN_MODEL
+
     options = SessionOptions()
     options.intra_op_num_threads = 2
     options.inter_op_num_threads = 1
     return InferenceSession(str(MAIN_MODEL), sess_options=options, providers=["CPUExecutionProvider"])
+
+
+def predict(*args, **kwargs):
+    from nakdimon.predict import predict as run_prediction
+
+    return run_prediction(*args, **kwargs)
 
 
 @cache
@@ -234,6 +240,25 @@ def readings(text):
     words = [match.group() for match in spans]
     if not words:
         raise ValueError("Enter at least one Hebrew word.")
+    if len(words) == 1:
+        word = words[0]
+        if re.search(rf"[{MARKS}{ACCENTS}]", word):
+            return [{"preferred": 0, "readings": [{"text": word, "meaning": ""}]}]
+        if word in REVIEWED_READINGS:
+            forms = REVIEWED_READINGS[word]
+            choices = expand_readings((form, (labels,) if isinstance(labels, str) else labels)
+                                      for form, labels in forms.items())
+        elif word in PREDICATE_FORMS:
+            choices = list(zip(PREDICATE_FORMS[word], ("צורת הזכר", "צורת הנקבה"), strict=True))
+        else:
+            # An isolated word has no sentence context to disambiguate.
+            # Read lexical entries directly before loading the neural model.
+            choices = expand_readings(lexicon().get(word, {}).values())
+            if not choices:
+                choices = [(form, "צורה מקראית") for form in BIBLICAL_FORMS.get(word, ())]
+        if choices:
+            return [{"preferred": 0 if len(choices) == 1 else -1,
+                     "readings": [{"text": form, "meaning": label} for form, label in choices]}]
     unpointed = plain(text)
     model_input = unpointed
     if len(words) > 1 and not unpointed.rstrip(" \t\r\n\"׳״”’)]").endswith((".", "!", "?", "׃", "…")):
