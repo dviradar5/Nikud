@@ -3,7 +3,7 @@
 ABBREVIATIONS = {
     "N": "ש״ע", "V": "פ׳", "ADJ": "ש״ת", "ADV": "תה״פ",
     "PROPN": "ש״פ", "PRO": "כנ׳", "ADP": "מ״י", "NUM": "ש״מ",
-    "CONJ": "מ״ק", "PART": "מיל׳", "INTJ": "מ׳ קריאה", "UNKNOWN": "סוג לא מזוהה",
+    "CONJ": "מ״ק", "PART": "מיל׳", "INTJ": "מ׳ קריאה", "UNKNOWN": "",
 }
 
 # Each group lists pointed forms whose grammatical role has been reviewed.

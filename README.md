@@ -78,7 +78,7 @@ Options end with a grammatical abbreviation. Different meanings of the same poin
 | מיל׳ | Particle · מילית |
 | מ׳ קריאה | Interjection · מילת קריאה |
 
-**סוג לא מזוהה** means that a reliable grammatical tag is unavailable for that suggestion. The model can still propose its niqqud, and you can review it in the editor.
+An option has a grammatical abbreviation when a reliable tag is available. Otherwise, its grammatical suffix is left blank.
 
 - **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.

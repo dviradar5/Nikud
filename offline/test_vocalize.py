@@ -34,9 +34,9 @@ class VocalizeTests(unittest.TestCase):
         rows = display_readings("יונה")[0]["readings"]
         self.assertEqual({row["pos"] for row in rows}, {"ש״ע", "ש״פ"})
 
-    def test_grammar_for_model_only_reading_is_explicitly_unknown(self):
+    def test_grammar_for_model_only_reading_is_blank_when_unknown(self):
         from vocalize import option_type
-        self.assertEqual(option_type("סמפלון", "הצעת המודל"), ABBREVIATIONS["UNKNOWN"])
+        self.assertEqual(option_type("סמפלון", "הצעת המודל"), "")
 
     def test_audit_restores_construct_nouns_and_ordinal_choices(self):
         for spelling, expected in (("חבר", "חֲבֵר"), ("שולחן", "שׁוּלְחַן"),
