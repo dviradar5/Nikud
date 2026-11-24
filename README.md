@@ -62,6 +62,24 @@ Try `ספר` by itself. You can choose **סֵפֶר** (written work), **סַפּ
 
 Known phrases such as **בֵּית סֵפֶר** and **בֵּית סִפְרִי** appear as a single suggested reading with a definition. Choose **בחירת ניקוד לכל מילה בנפרד** to use the individual word readings.
 
+Options end with a grammatical abbreviation. Different meanings of the same pointed form can have different types: **שׁוֹמֵר — מי שתפקידו להשגיח ולהגן, ש״ע** and **שׁוֹמֵר — משגיח, מגן או מקפיד לקיים דבר, פ׳**.
+
+| Abbreviation | Meaning |
+| --- | --- |
+| ש״ע | Noun · שם עצם |
+| פ׳ | Verb, including infinitives · פועל |
+| ש״ת | Adjective · שם תואר |
+| תה״פ | Adverb · תואר הפועל |
+| ש״פ | Proper name, including people and places · שם פרטי |
+| כנ׳ | Pronoun · כינוי |
+| מ״י | Preposition · מילת יחס |
+| ש״מ | Numeral, including ordinals · שם מספר |
+| מ״ק | Conjunction · מילת קישור |
+| מיל׳ | Particle · מילית |
+| מ׳ קריאה | Interjection · מילת קריאה |
+
+**סוג לא מזוהה** means that a reliable grammatical tag is unavailable for that suggestion. The model can still propose its niqqud, and you can review it in the editor.
+
 - **Spelling.** If standard pointed spelling requires adding or removing a letter, Nikud keeps the original spelling.
 - **Dagesh.** Nakdimon predicts dagesh along with the vowels. Nikud also checks a missing dagesh in בג״ד כפ״ת after a sheva against the lexicon. It restores the dot when exactly one matching pointed form supports it and all other marks agree. Forms with a sheva and a following undotted letter, such as **מַלְכֵי**, can be valid.
 - **Coverage.** The model can misread a word, and lexicon coverage varies with spelling and inflection. Review the suggestions when exact vocalization matters.

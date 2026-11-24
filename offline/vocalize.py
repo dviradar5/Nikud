@@ -11,6 +11,8 @@ from pathlib import Path
 from biblical_forms import FORMS as BIBLICAL_FORMS
 from compounds import COMPOUNDS
 from vocabulary import GLOSSES
+from names import NAMES
+from grammar import ABBREVIATIONS, FORM_GROUPS, SENSE_TYPES
 
 
 DATA = Path(__file__).resolve().parent
@@ -96,7 +98,7 @@ REVIEWED_READINGS = {
     "חמישה": {"חֲמִישָּׁה": "המספר 5 בזכר"},
     "שש": {"שֵׁשׁ": "המספר 6 בנקבה", "שָׂשׂ": "שָׂמַח"},
     "שבע": {"שֶׁבַע": "המספר 7 בנקבה", "שְׁבַע": "צורת הנסמך של שֶׁבַע", "שָׂבֵעַ": "שאכל די צורכו", "שָׂבַע": "אכל די צורכו"},
-    "שמונה": {"שְׁמוֹנֶה": "המספר 8 בנקבה", "שְׁמוֹנָה": "המספר 8 בזכר", "שֶׁמֻּנָּה": "שקיבל מינוי"},
+    "שמונה": {"שְׁמוֹנֶה": "המספר 8 בנקבה", "שְׁמוֹנָה": "המספר 8 בזכר", "שֶׁמּוּנָּה": "שקיבל מינוי"},
     "תשע": {"תֵּשַׁע": "המספר 9 בנקבה", "תְּשַׁע": "צורת הנסמך של תֵּשַׁע"},
     "עשר": {"עֶשֶׂר": "המספר 10 בנקבה", "עָשָׂר": "הרכיב השני במספרים 11–19 בזכר"},
     "מאה": {"מֵאָה": "המספר 100"},
@@ -110,8 +112,8 @@ REVIEWED_READINGS = {
     "גבוה": {"גָּבוֹהַּ": "שגובהו רב"},
     "מכתב": {"מִכְתָּב": "מסר כתוב לנמען"},
     "כפתור": {"כַּפְתּוֹר": "אביזר רכיסה או לחצן"},
-    "בוקר": {"בֹּקֶר": "ראשית היום", "בּוֹקֵר": "רועה בקר"},
-    "אוכל": {"אֹכֶל": "מזון", "אוֹכֵל": "צורך מזון", "אוּכַל": "אהיה מסוגל"},
+    "בוקר": {"בּוֹקֶר": "ראשית היום", "בּוֹקֵר": "רועה בקר"},
+    "אוכל": {"אוֹכֶל": "מזון", "אוֹכֵל": "צורך מזון", "אוּכַל": "אהיה מסוגל"},
 }
 REVIEWED_CONTEXT = {
     ("אישה", "אחת"): "אִישָּׁה",
@@ -130,6 +132,7 @@ PARTS_OF_SPEECH = {
 SHVA = "\u05b0"
 DAGESH = "\u05bc"
 BEGED_KEFET = "בגדכךפףת"
+LEXICAL_TYPES = defaultdict(dict)
 
 
 def plain(text):
@@ -214,6 +217,8 @@ def lexicon():
             if WORD.fullmatch(form):
                 part = PARTS_OF_SPEECH.get(re.split(r"[.;]", tags, maxsplit=1)[0], "")
                 meaning = f"נטייה של {lemma}" if form_key(lemma) != form_key(form) else part
+                code = re.split(r"[.;]", tags, maxsplit=1)[0]
+                LEXICAL_TYPES[form_key(form)].setdefault(meaning, set()).add(code)
                 _, meanings = entries[plain(form)].setdefault(form_key(form), (form, {}))
                 if meaning or not meanings:
                     if meaning:
@@ -226,11 +231,62 @@ def lexicon():
         for form, meanings in forms.items():
             labels = (meanings,) if isinstance(meanings, str) else meanings
             entries[word][form_key(form)] = (form, dict.fromkeys(labels))
+    for form, meaning in NAMES.items():
+        _, meanings = entries[plain(form)].setdefault(form_key(form), (form, {}))
+        meanings[meaning] = None
     return entries
 
 
 def expand_readings(groups):
     return [(form, meaning) for form, meanings in groups for meaning in meanings]
+
+
+@cache
+def reviewed_types():
+    defaults = {form_key(form): code for code, forms in FORM_GROUPS.items() for form in forms.split()}
+    senses = {form_key(form): codes for form, codes in SENSE_TYPES.items()}
+    entries = {}
+    for groups in (MEANINGS, GLOSSES, REVIEWED_READINGS):
+        for forms in groups.values():
+            for form, labels in forms.items():
+                labels = (labels,) if isinstance(labels, str) else labels
+                codes = senses.get(form_key(form))
+                for index, label in enumerate(labels):
+                    code = codes[index] if codes and index < len(codes) else defaults.get(form_key(form))
+                    if code:
+                        entries[form_key(form), label] = code
+    for spelling, forms in PREDICATE_FORMS.items():
+        for form, label in zip(forms, ("צורת הזכר", "צורת הנקבה"), strict=True):
+            entries[form_key(form), label] = "ADJ" if spelling == "יפה" else "V"
+    for form, meaning in NAMES.items():
+        entries[form_key(form), meaning] = "PROPN"
+    return entries
+
+
+def option_type(form, meaning):
+    key = form_key(form)
+    code = reviewed_types().get((key, meaning))
+    if code:
+        return ABBREVIATIONS[code]
+    lexicon()
+    labels = LEXICAL_TYPES.get(key, {})
+    codes = set()
+    if meaning in labels:
+        codes.update(labels[meaning])
+    else:
+        for tagged_codes in labels.values():
+            codes.update(tagged_codes)
+    return "/".join(ABBREVIATIONS[code] for code in sorted(codes) if code in ABBREVIATIONS) or ABBREVIATIONS["UNKNOWN"]
+
+
+def display_readings(text):
+    results = readings(text)
+    for word in results:
+        for option in word["readings"]:
+            option["pos"] = option_type(option["text"], option["meaning"])
+        if "compound" in word:
+            word["compound"]["pos"] = ABBREVIATIONS["N"]
+    return results
 
 
 
@@ -344,7 +400,7 @@ def main():
         text = json.loads(sys.stdin.buffer.read(16000))["text"]
         if not isinstance(text, str) or not 0 < len(text) <= 1500:
             raise ValueError("Enter up to 1,500 characters of Hebrew text.")
-        reply = {"words": readings(text)}
+        reply = {"words": display_readings(text)}
     except ValueError as error:
         reply = {"error": str(error)}
     sys.stdout.buffer.write(json.dumps(reply, ensure_ascii=False).encode("utf-8"))

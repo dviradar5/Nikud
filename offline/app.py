@@ -8,7 +8,7 @@ from secrets import token_hex
 from threading import Timer
 import webbrowser
 
-from vocalize import MARKS, WORD, readings
+from vocalize import MARKS, WORD, display_readings as readings
 
 NIKUD = re.compile(rf"[{MARKS}]")
 

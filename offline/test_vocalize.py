@@ -5,10 +5,48 @@ from app import for_browser
 from biblical_forms import FORMS as BIBLICAL_FORMS
 from compounds import COMPOUNDS
 from vocabulary import GLOSSES
-from vocalize import form_key, plain, readings, restore_lexical_dagesh
+from vocalize import (MEANINGS, REVIEWED_READINGS, display_readings, form_key, plain,
+                      readings, restore_lexical_dagesh)
+from names import NAMES
+from grammar import ABBREVIATIONS
 
 
 class VocalizeTests(unittest.TestCase):
+    def test_grammar_distinguishes_meanings_with_identical_pointing(self):
+        options = display_readings("שומר")[0]["readings"]
+        self.assertEqual([item["pos"] for item in options], ["ש״ע", "פ׳", "ש״ע", "ש״פ"])
+        sara = display_readings("שרה")[0]["readings"]
+        self.assertIn(("שָׂרָה", "ש״פ"), {(row["text"], row["pos"]) for row in sara})
+        self.assertIn(("שָׁרָה", "פ׳"), {(row["text"], row["pos"]) for row in sara})
+
+    def test_all_reviewed_names_have_a_named_reading_and_keep_original_spelling(self):
+        for form, meaning in NAMES.items():
+            with self.subTest(form=form):
+                rows = display_readings(plain(form))[0]["readings"]
+                self.assertIn((form_key(form), meaning, ABBREVIATIONS["PROPN"]),
+                              {(form_key(row["text"]), row["meaning"], row["pos"]) for row in rows})
+                self.assertTrue(all(plain(row["text"]) == plain(form) for row in rows))
+
+    def test_name_additions_keep_common_word_meanings(self):
+        rows = display_readings("דוד")[0]["readings"]
+        self.assertTrue(any(form_key(row["text"]) == form_key("דָּוִד") and row["pos"] == "ש״פ" for row in rows))
+        self.assertTrue(any(form_key(row["text"]) == form_key("דּוֹד") and row["pos"] == "ש״ע" for row in rows))
+        rows = display_readings("יונה")[0]["readings"]
+        self.assertEqual({row["pos"] for row in rows}, {"ש״ע", "ש״פ"})
+
+    def test_grammar_for_model_only_reading_is_explicitly_unknown(self):
+        from vocalize import option_type
+        self.assertEqual(option_type("סמפלון", "הצעת המודל"), ABBREVIATIONS["UNKNOWN"])
+
+    def test_audit_restores_construct_nouns_and_ordinal_choices(self):
+        for spelling, expected in (("חבר", "חֲבֵר"), ("שולחן", "שׁוּלְחַן"),
+                                   ("חדש", "חֹדֶשׁ"), ("מועד", "מוּעָד"),
+                                   ("שני", "שְׁנֵי"), ("שני", "שֵׁנִי")):
+            with self.subTest(spelling=spelling, expected=expected):
+                rows = display_readings(spelling)[0]["readings"]
+                self.assertTrue(any(form_key(row["text"]) == form_key(expected) and
+                                    row["pos"] != ABBREVIATIONS["UNKNOWN"] for row in rows))
+
     @patch("vocalize.model_session", side_effect=AssertionError("Model should not load"))
     @patch("vocalize.predict", side_effect=AssertionError("Prediction should not run"))
     def test_shomer_offers_all_three_readings_without_loading_the_model(self, _predict, _session):
@@ -62,7 +100,7 @@ class VocalizeTests(unittest.TestCase):
         self.assertEqual(len(word["readings"]), 3)
 
     def test_added_vocabulary_preserves_the_spelling(self):
-        for entries in (GLOSSES, BIBLICAL_FORMS):
+        for entries in (GLOSSES, BIBLICAL_FORMS, MEANINGS, REVIEWED_READINGS):
             for spelling, forms in entries.items():
                 for form in forms:
                     self.assertEqual(plain(form), spelling)

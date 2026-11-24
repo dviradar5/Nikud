@@ -237,7 +237,7 @@
       const phrase = words[start];
       const useCompound = phrase.useCompound !== false;
       const grouped = document.createElement('button');
-      grouped.textContent = `${phrase.compound.parts.join(' ')} — ${phrase.compound.meaning}`;
+      grouped.textContent = `${phrase.compound.parts.join(' ')} — ${phrase.compound.meaning}${phrase.compound.pos ? ', ' + phrase.compound.pos : ''}`;
       grouped.setAttribute('aria-pressed', useCompound);
       grouped.onclick = () => {
         phrase.useCompound = true;
@@ -261,7 +261,8 @@
     }
     for (const [choiceIndex, choice] of word.choices.entries()) {
       const button = document.createElement('button');
-      button.textContent = choice.meaning ? `${choice.text} — ${choice.meaning}` : choice.text;
+      const description = [choice.meaning, choice.pos].filter(Boolean).join(', ');
+      button.textContent = description ? `${choice.text} — ${description}` : choice.text;
       button.setAttribute('aria-pressed', choiceIndex === word.selected);
       button.onclick = () => {
         word.selected = choiceIndex;

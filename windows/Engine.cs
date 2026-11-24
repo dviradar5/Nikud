@@ -142,6 +142,9 @@ namespace Nikud
                 {
                     var pointed = ((string)option["text"]).Normalize();
                     var meaning = (string)option["meaning"];
+                    object grammaticalType;
+                    if (option.TryGetValue("pos", out grammaticalType) && !string.IsNullOrEmpty((string)grammaticalType))
+                        meaning = string.IsNullOrEmpty(meaning) ? (string)grammaticalType : meaning + ", " + grammaticalType;
                     bool isPreferred = readingIndex++ == preferred;
                     if (Strip(pointed) != Strip(span.Value)) continue;
                     var reading = word.Readings.Find(item => item.Text == pointed && item.Meaning == meaning);
@@ -160,7 +163,12 @@ namespace Nikud
                     var entry = (Dictionary<string, object>)compound;
                     var parts = ((IEnumerable)entry["parts"]).Cast<string>().Select(part => part.Normalize()).ToArray();
                     if (parts.Length == 2 && Strip(parts[0]) == Strip(span.Value) && Strip(parts[1]) == Strip(spans[i + 1].Value))
-                        word.Compound = new Compound { Parts = parts, Meaning = (string)entry["meaning"] };
+                    {
+                        object phraseType;
+                        string label = (string)entry["meaning"];
+                        if (entry.TryGetValue("pos", out phraseType)) label += ", " + phraseType;
+                        word.Compound = new Compound { Parts = parts, Meaning = label };
+                    }
                 }
                 words.Add(word);
             }
